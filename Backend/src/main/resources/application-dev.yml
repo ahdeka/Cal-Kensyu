@@ -1,23 +1,23 @@
 spring:
-  # H2 Database 설정
+  # H2 Database Setting
   datasource:
     driver-class-name: org.h2.Driver
     url: jdbc:h2:./db_dev;MODE=MySQL
     username: sa
     password:
 
-  # H2 Console 설정
+  # H2 Console Setting
   h2:
-    console: # H2 DB를 웹에서 관리할 수 있는 기능
-      enabled: true           # H2 Console 사용 여부
-      path: /h2-console       # H2 Console 접속 주소
+    console:
+      enabled: true           # H2 Console available
+      path: /h2-console       # H2 Console address
 
-  # JPA 설정
+  # JPA Setting
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
 
-# JWT 설정 추가
+# JWT Setting
 jwt:
   secret: your-secret-key-must-be-at-least-256-bits-long-for-HS256-algorithm-security
-  access-token-expiration: 1800000    # 30분 (밀리초)
-  refresh-token-expiration: 604800000 # 7일 (밀리초)
+  access-token-expiration: 1800000    # 30 minute
+  refresh-token-expiration: 604800000 # 7 days
