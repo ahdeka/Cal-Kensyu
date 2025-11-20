@@ -58,7 +58,7 @@ public class AuthController {
         response.addCookie(refreshTokenCookie);
 
         return ResponseEntity.ok(
-                RsData.of("200-1", "로그인 성공")
+                RsData.of("200", "로그인 성공")
         );
     }
 
@@ -71,7 +71,7 @@ public class AuthController {
         response.addCookie(refreshTokenCookie);
 
         return ResponseEntity.ok(
-                RsData.of("200-2", "로그아웃 성공")
+                RsData.of("200", "로그아웃 성공")
         );
     }
 
@@ -81,7 +81,7 @@ public class AuthController {
             HttpServletResponse response) {
 
         if (refreshToken == null || !jwtTokenProvider.validateToken(refreshToken)) {
-            throw new ServiceException("401-2", "유효하지 않은 토큰입니다.");
+            throw new ServiceException("401", "유효하지 않은 토큰입니다.");
         }
 
         String username = jwtTokenProvider.getUsername(refreshToken);
@@ -91,21 +91,34 @@ public class AuthController {
         response.addCookie(accessTokenCookie);
 
         return ResponseEntity.ok(
-                RsData.of("200-3", "토큰 갱신 성공")
+                RsData.of("200", "토큰 갱신 성공")
         );
     }
 
     @PostMapping("/signup")
     public ResponseEntity<RsData<Void>> signup(@Valid @RequestBody SignupRequest request) {
+        // パスワード確認検証
+        if (!request.isPasswordMatching()) {
+            throw new ServiceException("400", "パスワードが一致しません");
+        }
+
         if (userRepository.existsByUsername(request.username())) {
-            throw new ServiceException("400-2", "이미 존재하는 사용자명입니다.");
+            throw new ServiceException("400", "既に存在するユーザー名です");
+        }
+
+        // ニックネーム重複確認
+        if (userRepository.existsByNickname(request.nickname())) {
+            throw new ServiceException("400", "既に存在するニックネームです");
+        }
+
+        if (userRepository.existsByEmail(request.email())) {
+            throw new ServiceException("400", "既に存在するメールアドレスです");
         }
 
         User user = User.builder()
                 .username(request.username())
                 .password(passwordEncoder.encode(request.password()))
                 .email(request.email())
-                .name(request.name())
                 .nickname(request.nickname())
                 .role(Role.USER)
                 .build();
@@ -113,7 +126,7 @@ public class AuthController {
         userRepository.save(user);
 
         return ResponseEntity.ok(
-                RsData.of("201-1", "회원가입이 완료되었습니다.")
+                RsData.of("201", "会員登録が完了しました")
         );
     }
 
