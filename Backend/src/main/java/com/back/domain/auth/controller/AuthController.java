@@ -51,6 +51,14 @@ public class AuthController {
         String accessToken = jwtTokenProvider.createAccessToken(request.username());
         String refreshToken = jwtTokenProvider.createRefreshToken(request.username());
 
+        // DBにrefreshTokenを保存
+        User user = userRepository.findByUsername(request.username())
+                .orElseThrow(() -> new ServiceException("404", "ユーザーが見つかりません"));
+
+        user.updateRefreshToken(refreshToken);
+        userRepository.save(user);
+
+        // Cookieに保存
         Cookie accessTokenCookie = createCookie("accessToken", accessToken, ACCESS_TOKEN_COOKIE_MAX_AGE);
         response.addCookie(accessTokenCookie);
 
@@ -58,12 +66,28 @@ public class AuthController {
         response.addCookie(refreshTokenCookie);
 
         return ResponseEntity.ok(
-                RsData.of("200", "로그인 성공")
+                RsData.of("200", "ログイン成功")
         );
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<RsData<Void>> logout(HttpServletResponse response) {
+    public ResponseEntity<RsData<Void>> logout(
+            @CookieValue(name = "refreshToken", required = false) String refreshToken,
+            HttpServletResponse response) {
+
+        // DBからrefreshTokenを削除
+        if (refreshToken != null && jwtTokenProvider.validateToken(refreshToken)) {
+            String username = jwtTokenProvider.getUsername(refreshToken);
+            User user = userRepository.findByUsername(username)
+                    .orElse(null);
+
+            if (user != null) {
+                user.destroyRefreshToken();
+                userRepository.save(user);
+            }
+        }
+
+        // Cookieを削除
         Cookie accessTokenCookie = createCookie("accessToken", null, 0);
         Cookie refreshTokenCookie = createCookie("refreshToken", null, 0);
 
@@ -71,7 +95,7 @@ public class AuthController {
         response.addCookie(refreshTokenCookie);
 
         return ResponseEntity.ok(
-                RsData.of("200", "로그아웃 성공")
+                RsData.of("200", "ログアウト成功")
         );
     }
 
@@ -81,23 +105,32 @@ public class AuthController {
             HttpServletResponse response) {
 
         if (refreshToken == null || !jwtTokenProvider.validateToken(refreshToken)) {
-            throw new ServiceException("401", "유효하지 않은 토큰입니다.");
+            throw new ServiceException("401", "有効ではないトークンです");
         }
 
         String username = jwtTokenProvider.getUsername(refreshToken);
+
+        // DBに保存されているrefreshTokenと比較
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ServiceException("404", "ユーザーが見つかりません"));
+
+        if (!refreshToken.equals(user.getRefreshToken())) {
+            throw new ServiceException("401", "トークンが一致しません");
+        }
+
+        // 新しいアクセストークンを生成
         String newAccessToken = jwtTokenProvider.createAccessToken(username);
 
         Cookie accessTokenCookie = createCookie("accessToken", newAccessToken, ACCESS_TOKEN_COOKIE_MAX_AGE);
         response.addCookie(accessTokenCookie);
 
         return ResponseEntity.ok(
-                RsData.of("200", "토큰 갱신 성공")
+                RsData.of("200", "トークン更新成功")
         );
     }
 
     @PostMapping("/signup")
     public ResponseEntity<RsData<Void>> signup(@Valid @RequestBody SignupRequest request) {
-        // パスワード確認検証
         if (!request.isPasswordMatching()) {
             throw new ServiceException("400", "パスワードが一致しません");
         }
@@ -106,7 +139,6 @@ public class AuthController {
             throw new ServiceException("400", "既に存在するユーザー名です");
         }
 
-        // ニックネーム重複確認
         if (userRepository.existsByNickname(request.nickname())) {
             throw new ServiceException("400", "既に存在するニックネームです");
         }

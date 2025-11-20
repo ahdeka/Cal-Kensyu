@@ -29,6 +29,9 @@ public class User extends BaseEntity {
     @Column(nullable = false)
     private Role role;
 
+    @Column(length = 500)
+    private String refreshToken;
+
     @Builder
     public User(String username, String password, String email, String nickname, Role role) {
         this.username = username;
@@ -36,5 +39,13 @@ public class User extends BaseEntity {
         this.email = email;
         this.nickname = nickname;
         this.role = role != null ? role : Role.USER;
+    }
+
+    public void updateRefreshToken(String refreshToken) {
+        this.refreshToken = refreshToken;
+    }
+
+    public void destroyRefreshToken() {
+        this.refreshToken = null;
     }
 }

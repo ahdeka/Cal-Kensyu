@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { authService } from '@/lib/auth';
+import Link from 'next/link';
+// import { authService } from '@/lib/auth';
 
 interface SignupRequest {
   username: string;
@@ -44,14 +45,18 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      const response = await authService.signup(formData);
+      // const response = await authService.signup(formData);
       
-      if (response.resultCode === '201') {
-        alert('会員登録が完了しました!');
-        router.push('/login');
-      } else {
-        setError(response.msg || '会員登録に失敗しました');
-      }
+      // if (response.resultCode === '201') {
+      //   alert('会員登録が完了しました!');
+      //   router.push('/login');
+      // } else {
+      //   setError(response.msg || '会員登録に失敗しました');
+      // }
+      
+      // デモ用の処理
+      alert('会員登録が完了しました!');
+      router.push('/login');
     } catch (err: any) {
       setError(err.response?.data?.msg || '会員登録エラーが発生しました');
     } finally {
@@ -60,9 +65,15 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 py-8">
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h1 className="text-2xl font-bold text-center mb-6">会員登録</h1>
+        <div className="text-center mb-6">
+          <Link href="/" className="text-3xl font-bold text-[#a80000]">
+            NihonGo!
+          </Link>
+        </div>
+        
+        <h1 className="text-2xl font-bold text-center mb-6 text-gray-800">会員登録</h1>
         
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -80,7 +91,7 @@ export default function SignupPage() {
               name="username"
               value={formData.username}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#a80000]"
               required
             />
           </div>
@@ -94,7 +105,7 @@ export default function SignupPage() {
               name="password"
               value={formData.password}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#a80000]"
               required
             />
           </div>
@@ -108,7 +119,7 @@ export default function SignupPage() {
               name="passwordConfirm"
               value={formData.passwordConfirm}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#a80000]"
               required
             />
           </div>
@@ -122,7 +133,7 @@ export default function SignupPage() {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#a80000]"
               required
             />
           </div>
@@ -136,7 +147,7 @@ export default function SignupPage() {
               name="nickname"
               value={formData.nickname}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#a80000]"
               required
             />
           </div>
@@ -144,7 +155,7 @@ export default function SignupPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="w-full bg-[#a80000] text-white font-bold py-2 px-4 rounded-lg hover:bg-[#d11a1a] disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
           >
             {loading ? '登録中...' : '登録'}
           </button>
@@ -153,9 +164,9 @@ export default function SignupPage() {
         <div className="mt-4 text-center">
           <p className="text-gray-600">
             すでにアカウントをお持ちですか？{' '}
-            <a href="/login" className="text-blue-500 hover:underline">
+            <Link href="/login" className="text-[#a80000] hover:underline font-bold">
               ログイン
-            </a>
+            </Link>
           </p>
         </div>
       </div>
