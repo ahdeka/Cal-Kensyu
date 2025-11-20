@@ -20,6 +20,7 @@ import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 import static org.springframework.http.HttpStatus.*;
+
 @Slf4j
 @RestControllerAdvice
 @RequiredArgsConstructor
@@ -29,7 +30,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<RsData<Void>> handle(NoSuchElementException ex) {
         log.error("NoSuchElementException: {}", ex.getMessage());
         return new ResponseEntity<>(
-                new RsData<>("404-1", "해당 데이터가 존재하지 않습니다."),
+                new RsData<>("404-1", "該当するデータが存在しません。"),
                 NOT_FOUND
         );
     }
@@ -38,7 +39,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<RsData<Void>> handle(UsernameNotFoundException ex) {
         log.error("UsernameNotFoundException: {}", ex.getMessage());
         return new ResponseEntity<>(
-                new RsData<>("404-2", "사용자를 찾을 수 없습니다."),
+                new RsData<>("404-2", "ユーザーが見つかりません。"),
                 NOT_FOUND
         );
     }
@@ -47,7 +48,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<RsData<Void>> handle(BadCredentialsException ex) {
         log.error("BadCredentialsException: {}", ex.getMessage());
         return new ResponseEntity<>(
-                new RsData<>("401-1", "아이디 또는 비밀번호가 올바르지 않습니다."),
+                new RsData<>("401-1", "IDまたはパスワードが正しくありません。"),
                 UNAUTHORIZED
         );
     }
@@ -100,7 +101,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<RsData<Void>> handle(HttpMessageNotReadableException ex) {
         log.error("HttpMessageNotReadableException: {}", ex.getMessage());
         return new ResponseEntity<>(
-                new RsData<>("400-1", "요청 본문이 올바르지 않습니다."),
+                new RsData<>("400-1", "リクエストボディが正しくありません。"),
                 BAD_REQUEST
         );
     }
@@ -140,7 +141,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<RsData<Void>> handle(Exception ex) {
         log.error("Unexpected exception: ", ex);
         return new ResponseEntity<>(
-                new RsData<>("500-1", "서버 내부 오류가 발생했습니다."),
+                new RsData<>("500-1", "サーバー内部エラーが発生しました。"),
                 INTERNAL_SERVER_ERROR
         );
     }

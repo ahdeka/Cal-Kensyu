@@ -28,3 +28,10 @@ export interface User {
   name: string;
   nickname: string;
 }
+
+export interface UserInfo {
+  username: string;
+  nickname: string;
+  email: string;
+  role: string;
+}

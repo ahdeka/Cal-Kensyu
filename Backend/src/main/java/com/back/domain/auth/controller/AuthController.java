@@ -2,6 +2,7 @@ package com.back.domain.auth.controller;
 
 import com.back.domain.auth.dto.request.LoginRequest;
 import com.back.domain.auth.dto.request.SignupRequest;
+import com.back.domain.auth.dto.response.UserInfoResponse;
 import com.back.domain.user.entity.Role;
 import com.back.domain.user.entity.User;
 import com.back.domain.user.repository.UserRepository;
@@ -162,12 +163,39 @@ public class AuthController {
         );
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<RsData<UserInfoResponse>> getCurrentUser(
+            @CookieValue(name = "accessToken", required = false) String accessToken) {
+
+        if (accessToken == null || !jwtTokenProvider.validateToken(accessToken)) {
+            throw new ServiceException("401", "認証が必要です");
+        }
+
+        String username = jwtTokenProvider.getUsername(accessToken);
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ServiceException("404", "ユーザーが見つかりません"));
+
+        UserInfoResponse userInfo = UserInfoResponse.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .nickname(user.getNickname())
+                .role(user.getRole().name())
+                .build();
+
+        return ResponseEntity.ok(
+                RsData.of("200", "ユーザー情報取得成功", userInfo)
+        );
+    }
+
     private Cookie createCookie(String name, String value, int maxAge) {
         Cookie cookie = new Cookie(name, value);
         cookie.setHttpOnly(true);
         cookie.setSecure(false);
         cookie.setPath("/");
         cookie.setMaxAge(maxAge);
+        cookie.setDomain("localhost");
         return cookie;
     }
 }

@@ -1,6 +1,49 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { authService } from '@/lib/auth';
 
 export default function Header() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userInfo, setUserInfo] = useState<{ nickname: string } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    checkLoginStatus();
+  }, []);
+
+  const checkLoginStatus = async () => {
+    try {
+      const response = await authService.getCurrentUser();
+      
+      if (response.resultCode === '200' && response.data) {
+        setIsLoggedIn(true);
+        setUserInfo(response.data);
+      } else {
+        setIsLoggedIn(false);
+        setUserInfo(null);
+      }
+    } catch (error) {
+      setIsLoggedIn(false);
+      setUserInfo(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+      setIsLoggedIn(false);
+      setUserInfo(null);
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Logout error:', error);
+      alert('ログアウトに失敗しました');
+    }
+  };
+
   return (
     <header className="border-b border-gray-200 bg-white">
       <div className="container mx-auto px-4 py-4 max-w-6xl">
@@ -34,12 +77,30 @@ export default function Header() {
             </ul>
           </nav>
           
-          <Link 
-            href="/login" 
-            className="border border-[#a80000] text-[#a80000] px-4 py-2 rounded hover:bg-[#a80000] hover:text-white transition-all"
-          >
-            ログイン / 新規登録
-          </Link>
+          <div className="min-w-[150px]">
+            {loading ? (
+              <div className="text-gray-400">読込中...</div>
+            ) : isLoggedIn && userInfo ? (
+              <div className="flex items-center gap-4">
+                <span className="text-gray-700">
+                  {userInfo.nickname}さん
+                </span>
+                <button
+                  onClick={handleLogout}
+                  className="border border-[#a80000] cursor-pointer text-[#a80000] px-4 py-2 rounded hover:bg-[#a80000] hover:text-white transition-all"
+                >
+                  ログアウト
+                </button>
+              </div>
+            ) : (
+              <Link 
+                href="/login" 
+                className="border border-[#a80000] text-[#a80000] px-4 py-2 rounded hover:bg-[#a80000] hover:text-white transition-all inline-block"
+              >
+                ログイン / 新規登録
+              </Link>
+            )}
+          </div>
         </div>
       </div>
     </header>

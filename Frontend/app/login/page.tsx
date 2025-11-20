@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import MainLayout from '@/components/MainLayout';
+import { authService } from '@/lib/auth';
 
 interface LoginRequest {
   username: string;
@@ -32,18 +33,14 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // const response = await authService.login(formData);
+      const response = await authService.login(formData);
       
-      // if (response.resultCode === 'S-1') {
-      //   alert('ログインに成功しました！');
-      //   router.push('/dashboard');
-      // } else {
-      //   setError(response.msg || 'ログインに失敗しました');
-      // }
-      
-      // デモ用の処理
-      alert('ログインに成功しました！');
-      router.push('/');
+      if (response.resultCode === '200') {
+        // 페이지 새로고침으로 헤더의 로그인 상태 업데이트
+        window.location.href = '/';
+      } else {
+        setError(response.msg || 'ログインに失敗しました');
+      }
     } catch (err: any) {
       setError(err.response?.data?.msg || 'ログインエラーが発生しました');
     } finally {
@@ -73,7 +70,9 @@ export default function LoginPage() {
                 name="username"
                 value={formData.username}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#a80000]"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg 
+           bg-white text-gray-900
+           focus:outline-none focus:border-[#a80000]"
                 required
               />
             </div>
@@ -87,7 +86,9 @@ export default function LoginPage() {
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#a80000]"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg 
+           bg-white text-gray-900
+           focus:outline-none focus:border-[#a80000]"
                 required
               />
             </div>
@@ -95,7 +96,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#a80000] text-white font-bold py-2 px-4 rounded-lg hover:bg-[#d11a1a] disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              className="w-full bg-[#a80000] cursor-pointer text-white font-bold py-2 px-4 rounded-lg hover:bg-[#d11a1a] disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
             >
               {loading ? 'ログイン中...' : 'ログイン'}
             </button>

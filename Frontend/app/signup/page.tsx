@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import MainLayout from '@/components/MainLayout';
+import { authService } from '@/lib/auth';
 
 interface SignupRequest {
   username: string;
@@ -45,18 +46,14 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      // const response = await authService.signup(formData);
+      const response = await authService.signup(formData);
       
-      // if (response.resultCode === '201') {
-      //   alert('会員登録が完了しました!');
-      //   router.push('/login');
-      // } else {
-      //   setError(response.msg || '会員登録に失敗しました');
-      // }
-      
-      // デモ用の処理
-      alert('会員登録が完了しました!');
-      router.push('/login');
+      if (response.resultCode === '201') {
+        alert('会員登録が完了しました!');
+        router.push('/login');
+      } else {
+        setError(response.msg || '会員登録に失敗しました');
+      }
     } catch (err: any) {
       setError(err.response?.data?.msg || '会員登録エラーが発生しました');
     } finally {
@@ -86,7 +83,9 @@ export default function SignupPage() {
                 name="username"
                 value={formData.username}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#a80000]"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg 
+           bg-white text-gray-900
+           focus:outline-none focus:border-[#a80000]"
                 required
               />
             </div>
@@ -100,7 +99,9 @@ export default function SignupPage() {
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#a80000]"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg 
+           bg-white text-gray-900
+           focus:outline-none focus:border-[#a80000]"
                 required
               />
             </div>
@@ -114,7 +115,9 @@ export default function SignupPage() {
                 name="passwordConfirm"
                 value={formData.passwordConfirm}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#a80000]"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg 
+           bg-white text-gray-900
+           focus:outline-none focus:border-[#a80000]"
                 required
               />
             </div>
@@ -128,7 +131,9 @@ export default function SignupPage() {
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#a80000]"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg 
+           bg-white text-gray-900
+           focus:outline-none focus:border-[#a80000]"
                 required
               />
             </div>
@@ -142,7 +147,9 @@ export default function SignupPage() {
                 name="nickname"
                 value={formData.nickname}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#a80000]"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg 
+           bg-white text-gray-900
+           focus:outline-none focus:border-[#a80000]"
                 required
               />
             </div>
@@ -150,7 +157,7 @@ export default function SignupPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#a80000] text-white font-bold py-2 px-4 rounded-lg hover:bg-[#d11a1a] disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              className="w-full bg-[#a80000] cursor-pointer text-white font-bold py-2 px-4 rounded-lg hover:bg-[#d11a1a] disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
             >
               {loading ? '登録中...' : '登録'}
             </button>

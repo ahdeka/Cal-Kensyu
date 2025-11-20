@@ -29,7 +29,15 @@ export const authService = {
 
   // 現在のユーザー情報取得
   async getCurrentUser(): Promise<ApiResponse> {
-    const response = await api.get<ApiResponse>('/api/auth/me');
-    return response.data;
+    try {
+      const response = await api.get<ApiResponse>('/api/auth/me');
+      return response.data;
+    } catch (error: any) {
+      return {
+        resultCode: '401',
+        msg: '未認証',
+        data: null
+      };
+    }
   },
 };

@@ -47,13 +47,15 @@ public class SecurityConfig {
                                 "/swagger-resources/**",
                                 "/swagger-ui.html"
                         ).permitAll()
-                        // 인증 API 허용
-                        .requestMatchers("/api/auth/**").permitAll()
-                        // 루트 경로 허용 (선택사항)
-                        .requestMatchers("/", "/index.html", "/favicon.ico").permitAll()
+                        // 인증 없이 접근 가능한 Auth API만 허용
+                        .requestMatchers(
+                                "/api/auth/login",
+                                "/api/auth/signup",
+                                "/api/auth/refresh"
+                        ).permitAll()
                         // Admin API는 ADMIN 역할 필요
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        // 나머지는 인증 필요
+                        // 나머지는 인증 필요 (여기에 /api/auth/me, /api/auth/logout 포함)
                         .anyRequest().authenticated()
                 )
                 .headers(headers -> headers
