@@ -53,25 +53,37 @@ export default function Header() {
           </h1>
           
           <nav className="mb-4 md:mb-0">
-            <ul className="flex flex-wrap justify-center gap-6">
+            <ul className="flex flex-wrap justify-center gap-3">
               <li>
-                <Link href="/#about" className="text-gray-700 hover:text-[#a80000] transition-colors">
-                  サイトについて
+                <Link 
+                  href="/diary" 
+                  className="px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-[#a80000] transition-all inline-block"
+                >
+                  📝 日記帳
                 </Link>
               </li>
               <li>
-                <Link href="/#lessons" className="text-gray-700 hover:text-[#a80000] transition-colors">
-                  レッスン
+                <Link 
+                  href="/vocabulary" 
+                  className="px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-[#a80000] transition-all inline-block"
+                >
+                  📚 単語帳
                 </Link>
               </li>
               <li>
-                <Link href="/#community" className="text-gray-700 hover:text-[#a80000] transition-colors">
-                  コミュニティ
+                <Link 
+                  href="/practice" 
+                  className="px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-[#a80000] transition-all inline-block"
+                >
+                  ✏️ 問題演習
                 </Link>
               </li>
               <li>
-                <Link href="/#contact" className="text-gray-700 hover:text-[#a80000] transition-colors">
-                  お問い合わせ
+                <Link 
+                  href="/#contact" 
+                  className="px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-[#a80000] transition-all inline-block"
+                >
+                  💬 お問い合わせ
                 </Link>
               </li>
             </ul>
