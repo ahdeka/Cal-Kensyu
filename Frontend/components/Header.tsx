@@ -16,7 +16,7 @@ export default function Header() {
   const checkLoginStatus = async () => {
     try {
       const response = await authService.getCurrentUser();
-      
+
       if (response.resultCode === '200' && response.data) {
         setIsLoggedIn(true);
         setUserInfo(response.data);
@@ -51,36 +51,36 @@ export default function Header() {
           <h1 className="text-3xl font-bold text-[#a80000] mb-4 md:mb-0">
             <Link href="/">NihonGo!</Link>
           </h1>
-          
+
           <nav className="mb-4 md:mb-0">
             <ul className="flex flex-wrap justify-center gap-3">
               <li>
-                <Link 
-                  href="/diary" 
+                <Link
+                  href="/diary"
                   className="px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-[#a80000] transition-all inline-block"
                 >
                   📝 日記帳
                 </Link>
               </li>
               <li>
-                <Link 
-                  href="/vocabulary" 
+                <Link
+                  href="/vocabulary"
                   className="px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-[#a80000] transition-all inline-block"
                 >
                   📚 単語帳
                 </Link>
               </li>
               <li>
-                <Link 
-                  href="/practice" 
+                <Link
+                  href="/practice"
                   className="px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-[#a80000] transition-all inline-block"
                 >
                   ✏️ 問題演習
                 </Link>
               </li>
               <li>
-                <Link 
-                  href="/#contact" 
+                <Link
+                  href="/#contact"
                   className="px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-[#a80000] transition-all inline-block"
                 >
                   💬 お問い合わせ
@@ -88,7 +88,7 @@ export default function Header() {
               </li>
             </ul>
           </nav>
-          
+
           <div className="min-w-[150px]">
             {loading ? (
               <div className="text-gray-400">読込中...</div>
@@ -105,8 +105,8 @@ export default function Header() {
                 </button>
               </div>
             ) : (
-              <Link 
-                href="/login" 
+              <Link
+                href="/login"
                 className="border border-[#a80000] text-[#a80000] px-4 py-2 rounded hover:bg-[#a80000] hover:text-white transition-all inline-block"
               >
                 ログイン / 新規登録
