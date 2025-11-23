@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -31,6 +32,8 @@ public class DiaryService {
     public DiaryResponse createDiary(String username, DiaryCreateRequest request) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ServiceException("404", "ユーザーが見つかりません"));
+
+        validateDiaryDate(request.diaryDate());
 
         diaryRepository.findByUserAndDiaryDate(user, request.diaryDate())
                 .ifPresent(diary -> {
@@ -51,7 +54,7 @@ public class DiaryService {
     }
 
     public List<DiaryListResponse> getPublicDiaries() {
-        List<Diary> diaries = diaryRepository.findByIsPublicTrueOrderByDiaryDateDesc();
+        List<Diary> diaries = diaryRepository.findByIsPublicTrueOrderByCreateDateDesc();
 
         return diaries.stream()
                 .map(DiaryListResponse::from)
@@ -62,7 +65,7 @@ public class DiaryService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ServiceException("404", "ユーザーが見つかりません"));
 
-        List<Diary> diaries = diaryRepository.findByUserOrderByDiaryDateDesc(user);
+        List<Diary> diaries = diaryRepository.findByUserOrderByCreateDateDesc(user);
 
         return diaries.stream()
                 .map(DiaryListResponse::from)
@@ -84,6 +87,8 @@ public class DiaryService {
     public DiaryResponse updateDiary(Long diaryId, String username, DiaryUpdateRequest request) {
         Diary diary = diaryRepository.findById(diaryId)
                 .orElseThrow(() -> new ServiceException("404", "日記が見つかりません"));
+
+        validateDiaryDate(request.diaryDate());
 
         if (!diary.getUser().getUsername().equals(username)) {
             throw new ServiceException("403", "この日記を修正する権限がありません");
@@ -111,5 +116,19 @@ public class DiaryService {
         }
 
         diaryRepository.delete(diary);
+    }
+
+    // ===== Helper Method ===== //
+    private void validateDiaryDate(LocalDate diaryDate) {
+        LocalDate today = LocalDate.now();
+        LocalDate oneYearAgo = today.minusYears(1);
+
+        if (diaryDate.isAfter(today)) {
+            throw new ServiceException("400", "未来の日付は設定できません");
+        }
+
+        if (diaryDate.isBefore(oneYearAgo)) {
+            throw new ServiceException("400", "1年以上前の日付は設定できません");
+        }
     }
 }

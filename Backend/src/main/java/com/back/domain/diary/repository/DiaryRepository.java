@@ -10,9 +10,9 @@ import java.util.Optional;
 
 public interface DiaryRepository extends JpaRepository<Diary, Long> {
 
-    List<Diary> findByUserOrderByDiaryDateDesc(User user);
+    List<Diary> findByUserOrderByCreateDateDesc(User user);
 
-    List<Diary> findByIsPublicTrueOrderByDiaryDateDesc();
+    List<Diary> findByIsPublicTrueOrderByCreateDateDesc();
 
     Optional<Diary> findByUserAndDiaryDate(User user, LocalDate diaryDate);
 

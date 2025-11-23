@@ -1,19 +1,55 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/MainLayout';
 import { diaryService } from '@/lib/api/diaryService';
 
 export default function DiaryWritePage() {
   const router = useRouter();
-  const [diaryDate, setDiaryDate] = useState(
-    new Date().toISOString().split('T')[0]
-  );
+  const hasCheckedAuth = useRef(false);
+  
+  // 날짜 제한 계산
+  const today = new Date().toISOString().split('T')[0];
+  const oneYearAgo = new Date();
+  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+  const minDate = oneYearAgo.toISOString().split('T')[0];
+
+  const [diaryDate, setDiaryDate] = useState(today);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [isPublic, setIsPublic] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  useEffect(() => {
+    if (!hasCheckedAuth.current) {
+      hasCheckedAuth.current = true;
+      checkLoginStatus();
+    }
+  }, []);
+
+  const checkLoginStatus = async () => {
+    try {
+      const response = await fetch('http://localhost:8080/api/auth/me', {
+        credentials: 'include',
+      });
+      
+      if (response.ok) {
+        setIsLoggedIn(true);
+      } else {
+        alert('日記を書くにはログインが必要です');
+        router.push('/login');
+      }
+    } catch (error) {
+      console.error('認証確認エラー:', error);
+      alert('日記を書くにはログインが必要です');
+      router.push('/login');
+    } finally {
+      setCheckingAuth(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,6 +79,22 @@ export default function DiaryWritePage() {
     }
   };
 
+  // 로그인 확인 중일 때
+  if (checkingAuth) {
+    return (
+      <MainLayout>
+        <div className="py-20 text-center">
+          <p className="text-gray-500 text-lg">確認中...</p>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  // 로그인 안 되어 있으면 빈 화면 (리다이렉트 중)
+  if (!isLoggedIn) {
+    return null;
+  }
+
   return (
     <MainLayout>
       <section className="py-12 bg-gray-50 min-h-screen">
@@ -62,7 +114,8 @@ export default function DiaryWritePage() {
                   type="date"
                   value={diaryDate}
                   onChange={(e) => setDiaryDate(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#a80000]"
+                  lang="ja-JP"
+                  className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#a80000] cursor-pointer w-auto"
                   required
                 />
               </div>
@@ -119,14 +172,14 @@ export default function DiaryWritePage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 bg-[#a80000] text-white px-6 py-3 rounded-lg font-bold hover:bg-[#d11a1a] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 bg-[#a80000] cursor-pointer text-white px-6 py-3 rounded-lg font-bold hover:bg-[#d11a1a] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? '保存中...' : '日記を保存'}
                 </button>
                 <button
                   type="button"
-                  onClick={() => router.back()}
-                  className="px-6 py-3 border border-gray-300 rounded-lg font-bold text-gray-700 hover:bg-gray-100 transition-all"
+                  onClick={() => router.push('/diary')}
+                  className="px-6 py-3 border cursor-pointer border-gray-300 rounded-lg font-bold text-gray-700 hover:bg-gray-100 transition-all"
                 >
                   キャンセル
                 </button>

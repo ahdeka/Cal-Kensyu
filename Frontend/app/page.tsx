@@ -1,7 +1,30 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import MainLayout from '@/components/MainLayout';
 
 export default function HomePage() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    checkLoginStatus();
+  }, []);
+
+  const checkLoginStatus = async () => {
+    try {
+      const response = await fetch('http://localhost:8080/api/auth/me', {
+        credentials: 'include',
+      });
+      setIsLoggedIn(response.ok);
+    } catch (error) {
+      setIsLoggedIn(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <MainLayout>
       {/* ヒーローセクション */}
@@ -13,12 +36,16 @@ export default function HomePage() {
           <p className="text-xl mb-10 text-gray-700">
             日記、単語帳、問題演習で楽しく日本語を学びましょう。
           </p>
-          <Link 
-            href="#features" 
-            className="inline-block bg-[#a80000] text-white px-8 py-3 rounded-full text-lg font-bold hover:bg-[#d11a1a] hover:-translate-y-1 transition-all"
-          >
-            今すぐ学習を始める
-          </Link>
+          
+          {/* 로그인 상태에 따라 버튼 표시/숨김 */}
+          {!loading && !isLoggedIn && (
+            <Link 
+              href="/signup" 
+              className="inline-block bg-[#a80000] text-white px-8 py-3 rounded-full text-lg font-bold hover:bg-[#d11a1a] hover:-translate-y-1 transition-all"
+            >
+              今すぐ学習を始める
+            </Link>
+          )}
         </div>
       </section>
 

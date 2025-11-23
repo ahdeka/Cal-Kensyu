@@ -11,12 +11,18 @@ export default function DiaryEditPage() {
   const params = useParams();
   const diaryId = Number(params.id);
 
+  // 날짜 제한 계산
+  const today = new Date().toISOString().split('T')[0];
+  const oneYearAgo = new Date();
+  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+  const minDate = oneYearAgo.toISOString().split('T')[0];
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [diary, setDiary] = useState<DiaryResponse | null>(null);
 
   // フォームデータ
-  const [diaryDate, setDiaryDate] = useState('');
+  const [diaryDate, setDiaryDate] = useState(today);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [isPublic, setIsPublic] = useState(true);
@@ -191,7 +197,7 @@ export default function DiaryEditPage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 bg-[#a80000] text-white px-6 py-3 rounded-lg font-bold hover:bg-[#d11a1a] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 bg-[#a80000] cursor-pointer text-white px-6 py-3 rounded-lg font-bold hover:bg-[#d11a1a] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {saving ? '保存中...' : '修正を保存'}
                 </button>
@@ -199,7 +205,7 @@ export default function DiaryEditPage() {
                   type="button"
                   onClick={() => router.back()}
                   disabled={saving}
-                  className="px-6 py-3 border border-gray-300 rounded-lg font-bold text-gray-700 hover:bg-gray-100 transition-all disabled:opacity-50"
+                  className="px-6 py-3 border cursor-pointer border-gray-300 rounded-lg font-bold text-gray-700 hover:bg-gray-100 transition-all disabled:opacity-50"
                 >
                   キャンセル
                 </button>
