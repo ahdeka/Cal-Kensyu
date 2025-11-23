@@ -6,6 +6,7 @@ import com.back.global.security.jwt.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -47,15 +48,21 @@ public class SecurityConfig {
                                 "/swagger-resources/**",
                                 "/swagger-ui.html"
                         ).permitAll()
-                        // 인증 없이 접근 가능한 Auth API만 허용
+                        // 인증 없이 접근 가능한 Auth API
                         .requestMatchers(
                                 "/api/auth/login",
                                 "/api/auth/signup",
                                 "/api/auth/refresh"
                         ).permitAll()
+                        // Diary API - 공개 일기 목록은 누구나 조회 가능
+                        .requestMatchers(HttpMethod.GET, "/api/diary/public").permitAll()
+                        // Diary API - 상세 조회는 서비스에서 권한 체크 (공개는 누구나, 비공개는 작성자만)
+                        .requestMatchers(HttpMethod.GET, "/api/diary/{id}").permitAll()
+                        // Diary API - 나머지는 인증 필요 (작성, 수정, 삭제, 내 일기 목록)
+                        .requestMatchers("/api/diary/**").authenticated()
                         // Admin API는 ADMIN 역할 필요
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        // 나머지는 인증 필요 (여기에 /api/auth/me, /api/auth/logout 포함)
+                        // 나머지는 인증 필요
                         .anyRequest().authenticated()
                 )
                 .headers(headers -> headers

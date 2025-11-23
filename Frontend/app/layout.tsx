@@ -7,8 +7,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Cal-Kensyu アプリ",
-  description: "JWT認証システム",
+  title: "CAL NIHONGO",
+  description: "CAL ORIGINAL PROJECT",
 };
 
 export default function RootLayout({
