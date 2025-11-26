@@ -44,6 +44,11 @@ export default function Header() {
     }
   };
 
+  const handleComingSoon = (e: React.MouseEvent, feature: string) => {
+    e.preventDefault();
+    alert(`${feature}は現在準備中です。\nもうしばらくお待ちください!`);
+  };
+
   return (
     <header className="border-b border-gray-200 bg-white">
       <div className="container mx-auto px-4 py-4 max-w-6xl">
@@ -72,16 +77,18 @@ export default function Header() {
               </li>
               <li>
                 <Link
-                  href="/practice"
-                  className="px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-[#a80000] transition-all inline-block"
+                  href="#"
+                  onClick={(e) => handleComingSoon(e, '問題演習')}
+                  className="px-4 py-2 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-500 transition-all inline-block cursor-pointer"
                 >
                   ✏️ 問題演習
                 </Link>
               </li>
               <li>
                 <Link
-                  href="/#contact"
-                  className="px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-[#a80000] transition-all inline-block"
+                  href="#"
+                  onClick={(e) => handleComingSoon(e, 'お問い合わせ')}
+                  className="px-4 py-2 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-500 transition-all inline-block cursor-pointer"
                 >
                   💬 お問い合わせ
                 </Link>

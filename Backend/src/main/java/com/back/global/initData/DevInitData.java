@@ -5,6 +5,9 @@ import com.back.domain.diary.repository.DiaryRepository;
 import com.back.domain.user.entity.Role;
 import com.back.domain.user.entity.User;
 import com.back.domain.user.repository.UserRepository;
+import com.back.domain.vocabulary.entity.StudyStatus;
+import com.back.domain.vocabulary.entity.Vocabulary;
+import com.back.domain.vocabulary.repository.VocabularyRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,12 +28,14 @@ public class DevInitData {
     private final UserRepository userRepository;
     private final DiaryRepository diaryRepository;
     private final PasswordEncoder passwordEncoder;
+    private final VocabularyRepository  vocabularyRepository;
 
     @Bean
     ApplicationRunner devInitDataApplicationRunner() {
         return args -> {
             createUsers();
             createDiaries();
+            createVocabularies();
         };
     }
 
@@ -120,7 +125,48 @@ public class DevInitData {
         log.info("総生成アカウント: 6個 (管理者 1個、一般ユーザー 5個)");
     }
 
+    @Transactional
+    public void createVocabularies() {
+        // 사용자 조회
+        User user1 = userRepository.findByUsername("user1").orElse(null);
 
+        if (user1 == null) {
+            log.warn("単語帳生成スキップ: ユーザーが存在しません");
+            return;
+        }
+
+        createVocabulary(user1, "隣人", "りんじん", "이웃, 인인",
+                "隣人の迷惑にならないように気をつけましょう。。",
+                "이웃에게 폐가 되지 않도록 조심합시다.",
+                StudyStatus.COMPLETED);
+
+        createVocabulary(user1, "日記", "にっき", "일기",
+                "毎晩日記を書きます。",
+                "매일 밤 일기를 씁니다.",
+                StudyStatus.NOT_STUDIED);
+
+        createVocabulary(user1, "難しい", "むずかしい", "어렵다",
+                "この問題は難しいです。",
+                "이 문제는 어렵습니다.",
+                StudyStatus.STUDYING);
+
+        createVocabulary(user1, "助詞", "じょし", "조사",
+                "日本語の助詞は複雑です。",
+                "일본어 조사는 복잡합니다.",
+                StudyStatus.STUDYING);
+
+        createVocabulary(user1, "字幕", "じまく", "자막",
+                "字幕なしでドラマを見ます。",
+                "자막 없이 드라마를 봅니다.",
+                StudyStatus.NOT_STUDIED);
+
+        createVocabulary(user1, "挑戦", "ちょうせん", "도전",
+                "新しいことに挑戦します。",
+                "새로운 것에 도전합니다.",
+                StudyStatus.NOT_STUDIED);
+
+        log.info("単語帳テストデータ生成完了");
+    }
 
     private void createUser(String username, String password, String email, String nickname, Role role) {
         // 既に存在するアカウントはスキップ
@@ -163,5 +209,21 @@ public class DevInitData {
 
         diaryRepository.save(diary);
         log.debug("日記生成: {} - {}", user.getUsername(), title);
+    }
+
+    private void createVocabulary(User user, String word, String hiragana, String meaning,
+                                  String exampleSentence, String exampleTranslation,
+                                  StudyStatus studyStatus) {
+        Vocabulary vocabulary = Vocabulary.builder()
+                .user(user)
+                .word(word)
+                .hiragana(hiragana)
+                .meaning(meaning)
+                .exampleSentence(exampleSentence)
+                .exampleTranslation(exampleTranslation)
+                .studyStatus(studyStatus)
+                .build();
+
+        vocabularyRepository.save(vocabulary);
     }
 }
