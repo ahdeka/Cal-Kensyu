@@ -77,9 +77,8 @@ export default function Header() {
               </li>
               <li>
                 <Link
-                  href="#"
-                  onClick={(e) => handleComingSoon(e, '問題演習')}
-                  className="px-4 py-2 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-500 transition-all inline-block cursor-pointer"
+                  href="/quiz"
+                  className="px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-[#a80000] transition-all inline-block"
                 >
                   ✏️ 問題演習
                 </Link>
