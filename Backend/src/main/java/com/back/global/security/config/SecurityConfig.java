@@ -62,6 +62,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/diary/**").authenticated()
                         // Vocabulary API - 모든 기능은 인증 필요 (본인의 단어장만 접근 가능)
                         .requestMatchers("/api/vocabularies/**").authenticated()
+                        // Quiz API - 인증 필요 (로그인한 사용자만 퀴즈 가능)
+                        .requestMatchers("/api/quiz/**").authenticated()
                         // Admin API는 ADMIN 역할 필요
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         // 나머지는 인증 필요
