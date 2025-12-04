@@ -2,6 +2,9 @@ package com.back.global.initData;
 
 import com.back.domain.diary.entity.Diary;
 import com.back.domain.diary.repository.DiaryRepository;
+import com.back.domain.quiz.entity.QuizWord;
+import com.back.domain.quiz.entity.WordSource;
+import com.back.domain.quiz.repository.QuizWordRepository;
 import com.back.domain.user.entity.Role;
 import com.back.domain.user.entity.User;
 import com.back.domain.user.repository.UserRepository;
@@ -29,6 +32,7 @@ public class DevInitData {
     private final DiaryRepository diaryRepository;
     private final PasswordEncoder passwordEncoder;
     private final VocabularyRepository  vocabularyRepository;
+    private final QuizWordRepository  quizWordRepository;
 
     @Bean
     ApplicationRunner devInitDataApplicationRunner() {
@@ -36,7 +40,40 @@ public class DevInitData {
             createUsers();
             createDiaries();
             createVocabularies();
+            createQuizWords();
         };
+    }
+
+    @Transactional
+    public void createQuizWords() {
+        if (quizWordRepository.count() > 0) {
+            log.info("Quiz単語既に存在: スキップ");
+            return;
+        }
+
+        createQuizWord(WordSource.JLPT, "N5", "食べる", "たべる", "먹다");
+        createQuizWord(WordSource.JLPT, "N5", "学校", "がっこう", "학교");
+        createQuizWord(WordSource.JLPT, "N5", "本", "ほん", "책");
+        createQuizWord(WordSource.JLPT, "N5", "明日", "あした", "내일");
+        createQuizWord(WordSource.JLPT, "N5", "見る", "みる", "보다");
+        createQuizWord(WordSource.JLPT, "N5", "行く", "いく", "가다");
+        createQuizWord(WordSource.JLPT, "N5", "水", "みず", "물");
+        createQuizWord(WordSource.JLPT, "N5", "大きい", "おおきい", "크다");
+        createQuizWord(WordSource.JLPT, "N5", "友達", "ともだち", "친구");
+        createQuizWord(WordSource.JLPT, "N5", "買う", "かう", "사다");
+
+        createQuizWord(WordSource.JLPT, "N3", "設立", "せつりつ", "설립");
+        createQuizWord(WordSource.JLPT, "N3", "効率", "こうりつ", "효율");
+        createQuizWord(WordSource.JLPT, "N3", "貿易", "ぼうえき", "무역");
+        createQuizWord(WordSource.JLPT, "N3", "政策", "せいさく", "정책");
+        createQuizWord(WordSource.JLPT, "N3", "普及", "ふきゅう", "보급");
+        createQuizWord(WordSource.JLPT, "N3", "保障", "ほしょう", "보장");
+        createQuizWord(WordSource.JLPT, "N3", "傾向", "けいこう", "경향");
+        createQuizWord(WordSource.JLPT, "N3", "規模", "きぼ", "규모");
+        createQuizWord(WordSource.JLPT, "N3", "著しい", "いちじるしい", "현저하다");
+        createQuizWord(WordSource.JLPT, "N3", "拡大", "かくだい", "확대");
+
+        log.info("Quiz単語生成完了: N5 10個, N3 10個");
     }
 
     @Transactional
@@ -225,5 +262,20 @@ public class DevInitData {
                 .build();
 
         vocabularyRepository.save(vocabulary);
+    }
+
+    private void createQuizWord(WordSource source, String sourceDetail,
+                                String word, String hiragana, String meaning) {
+        QuizWord quizWord = QuizWord.builder()
+                .source(source)
+                .sourceDetail(sourceDetail)
+                .word(word)
+                .hiragana(hiragana)
+                .meaning(meaning)
+                .exampleSentence(null)
+                .exampleTranslation(null)
+                .build();
+
+        quizWordRepository.save(quizWord);
     }
 }
