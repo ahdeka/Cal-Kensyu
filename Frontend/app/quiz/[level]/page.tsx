@@ -1,27 +1,73 @@
-// Frontend/app/quiz/n5/page.tsx
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import MainLayout from '@/components/MainLayout';
 import { quizService } from '@/lib/api/quizService';
-import { QuizQuestion } from '@/types/quiz';
+import { QuizQuestion, JlptLevel } from '@/types/quiz';
 
-export default function N5QuizPage() {
+// 레벨별 색상 설정
+const LEVEL_COLORS = {
+  N5: {
+    primary: 'green',
+    gradient: 'from-green-50 to-blue-50',
+    button: 'bg-green-500 hover:bg-green-600',
+    progress: 'bg-green-500',
+    badge: 'bg-green-500',
+  },
+  N4: {
+    primary: 'blue',
+    gradient: 'from-blue-50 to-indigo-50',
+    button: 'bg-blue-500 hover:bg-blue-600',
+    progress: 'bg-blue-500',
+    badge: 'bg-blue-500',
+  },
+  N3: {
+    primary: 'yellow',
+    gradient: 'from-yellow-50 to-orange-50',
+    button: 'bg-yellow-500 hover:bg-yellow-600',
+    progress: 'bg-yellow-500',
+    badge: 'bg-yellow-500',
+  },
+  N2: {
+    primary: 'orange',
+    gradient: 'from-orange-50 to-red-50',
+    button: 'bg-orange-500 hover:bg-orange-600',
+    progress: 'bg-orange-500',
+    badge: 'bg-orange-500',
+  },
+  N1: {
+    primary: 'red',
+    gradient: 'from-red-50 to-pink-50',
+    button: 'bg-red-500 hover:bg-red-600',
+    progress: 'bg-red-500',
+    badge: 'bg-red-500',
+  },
+};
+
+export default function QuizLevelPage() {
   const router = useRouter();
+  const params = useParams();
+  const level = (params.level as string)?.toUpperCase() as JlptLevel;
   const hasCheckedAuth = useRef(false);
   const hasFetchedQuiz = useRef(false);
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [showQuestionCountSelect, setShowQuestionCountSelect] = useState(true);
+  const [selectedQuestionCount, setSelectedQuestionCount] = useState(10);
   const [quizzes, setQuizzes] = useState<QuizQuestion[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [isAnswered, setIsAnswered] = useState(false);
   const [score, setScore] = useState(0);
   const [showResult, setShowResult] = useState(false);
+
+  // 유효한 레벨인지 확인
+  const isValidLevel = ['N5', 'N4', 'N3', 'N2', 'N1'].includes(level);
+  const colors = isValidLevel ? LEVEL_COLORS[level] : LEVEL_COLORS.N5;
 
   useEffect(() => {
     if (!hasCheckedAuth.current) {
@@ -31,11 +77,11 @@ export default function N5QuizPage() {
   }, []);
 
   useEffect(() => {
-    if (isLoggedIn && !hasFetchedQuiz.current) {
-      hasFetchedQuiz.current = true;
-      fetchQuizzes();
+    if (!isValidLevel && !checkingAuth) {
+      alert('無効なレベルです');
+      router.push('/quiz');
     }
-  }, [isLoggedIn]);
+  }, [isValidLevel, checkingAuth, router]);
 
   const checkLoginStatus = async () => {
     try {
@@ -58,28 +104,34 @@ export default function N5QuizPage() {
     }
   };
 
-  const fetchQuizzes = async () => {
+  const fetchQuizzes = async (count: number) => {
     setLoading(true);
     try {
-      const data = await quizService.getQuizByLevel('N5', 10);
-      console.log('Quiz data loaded:', data); // 디버깅용
+      const data = await quizService.getQuizByLevel(level, count);
+      console.log('Quiz data loaded:', data);
       setQuizzes(data);
+      setShowQuestionCountSelect(false);
     } catch (error: any) {
       console.error('クイズ読込エラー:', error);
       if (error.response?.status === 401) {
         alert('ログインが必要です');
         router.push('/login');
       } else {
-        alert('クイズの読込に失敗しました');
+        alert(error.response?.data?.msg || 'クイズの読込に失敗しました');
       }
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ 중요: currentQuestion을 안전하게 가져오기
+  const handleStartQuiz = () => {
+    fetchQuizzes(selectedQuestionCount);
+  };
+
   const currentQuestion = quizzes[currentQuestionIndex] || null;
-  const isCorrect = currentQuestion ? selectedAnswer === currentQuestion.correctAnswer : false;
+  const isCorrect = currentQuestion
+    ? selectedAnswer === currentQuestion.correctAnswer
+    : false;
 
   const handleAnswer = (choice: string) => {
     if (isAnswered || !currentQuestion) return;
@@ -108,15 +160,15 @@ export default function N5QuizPage() {
     setIsAnswered(false);
     setScore(0);
     setShowResult(false);
-    hasFetchedQuiz.current = false;
-    fetchQuizzes();
+    setShowQuestionCountSelect(true);
+    setQuizzes([]);
   };
 
   // 로딩 중
   if (checkingAuth || loading) {
     return (
       <MainLayout>
-        <section className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center">
+        <section className={`min-h-screen bg-gradient-to-br ${colors.gradient} flex items-center justify-center`}>
           <div className="text-center">
             <div className="text-4xl mb-4">📚</div>
             <p className="text-gray-500 text-lg">読込中...</p>
@@ -126,17 +178,72 @@ export default function N5QuizPage() {
     );
   }
 
-  // ✅ 퀴즈 데이터 없음 체크 추가
+  // 문제 개수 선택 화면
+  if (showQuestionCountSelect) {
+    return (
+      <MainLayout>
+        <section className={`min-h-screen bg-gradient-to-br ${colors.gradient} py-16`}>
+          <div className="container mx-auto px-4 max-w-2xl">
+            <Link
+              href="/quiz"
+              className="inline-block text-gray-600 hover:text-gray-900 mb-6"
+            >
+              ← レベル選択に戻る
+            </Link>
+
+            <div className="bg-white rounded-2xl shadow-xl p-8">
+              <div className="text-center mb-8">
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                  JLPT {level} 問題演習
+                </h1>
+                <p className="text-gray-600">問題数を選択してください</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                {[10, 20, 30].map((count) => (
+                  <button
+                    key={count}
+                    onClick={() => setSelectedQuestionCount(count)}
+                    className={`p-6 rounded-xl border-2 transition-all ${
+                      selectedQuestionCount === count
+                        ? `${colors.button} text-white border-transparent`
+                        : 'border-gray-300 hover:border-gray-400'
+                    }`}
+                  >
+                    <div className="text-3xl font-bold mb-2">{count}問</div>
+                    <div className="text-sm">
+                      {count === 10 && '約5分'}
+                      {count === 20 && '約10分'}
+                      {count === 30 && '約15分'}
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={handleStartQuiz}
+                className={`w-full ${colors.button} text-white font-bold py-4 rounded-xl transition-all`}
+              >
+                問題演習を始める
+              </button>
+            </div>
+          </div>
+        </section>
+      </MainLayout>
+    );
+  }
+
+  // 퀴즈 데이터 없음
   if (!loading && quizzes.length === 0) {
     return (
       <MainLayout>
-        <section className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center">
+        <section className={`min-h-screen bg-gradient-to-br ${colors.gradient} flex items-center justify-center`}>
           <div className="text-center">
             <div className="text-4xl mb-4">😢</div>
             <p className="text-gray-700 text-lg mb-4">クイズデータがありません</p>
             <Link
               href="/quiz"
-              className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-xl font-bold transition-all inline-block"
+              className={`${colors.button} text-white px-6 py-3 rounded-xl font-bold transition-all inline-block`}
             >
               レベル選択に戻る
             </Link>
@@ -146,17 +253,17 @@ export default function N5QuizPage() {
     );
   }
 
-  // ✅ currentQuestion이 null인 경우 체크
+  // currentQuestion이 null인 경우
   if (!currentQuestion && !showResult) {
     return (
       <MainLayout>
-        <section className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center">
+        <section className={`min-h-screen bg-gradient-to-br ${colors.gradient} flex items-center justify-center`}>
           <div className="text-center">
             <div className="text-4xl mb-4">⚠️</div>
             <p className="text-gray-700 text-lg mb-4">問題を読み込めませんでした</p>
             <button
               onClick={() => router.push('/quiz')}
-              className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-xl font-bold transition-all"
+              className={`${colors.button} text-white px-6 py-3 rounded-xl font-bold transition-all`}
             >
               レベル選択に戻る
             </button>
@@ -171,7 +278,7 @@ export default function N5QuizPage() {
     const percentage = (score / quizzes.length) * 100;
     return (
       <MainLayout>
-        <section className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 py-16">
+        <section className={`min-h-screen bg-gradient-to-br ${colors.gradient} py-16`}>
           <div className="container mx-auto px-4 max-w-2xl">
             <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
               <div className="mb-8">
@@ -181,11 +288,11 @@ export default function N5QuizPage() {
                 <h2 className="text-3xl font-bold text-gray-900 mb-2">
                   お疲れ様でした！
                 </h2>
-                <p className="text-gray-600">JLPT N5 問題演習</p>
+                <p className="text-gray-600">JLPT {level} 問題演習</p>
               </div>
 
-              <div className="bg-green-50 rounded-xl p-8 mb-8">
-                <div className="text-5xl font-bold text-green-600 mb-2">
+              <div className={`${colors.gradient} rounded-xl p-8 mb-8`}>
+                <div className={`text-5xl font-bold text-${colors.primary}-600 mb-2`}>
                   {score} / {quizzes.length}
                 </div>
                 <div className="text-xl text-gray-700">
@@ -196,7 +303,7 @@ export default function N5QuizPage() {
               <div className="space-y-3 mb-8">
                 {percentage >= 80 && (
                   <p className="text-lg text-gray-700">
-                    素晴らしい！N5レベルをよく理解しています！🌟
+                    素晴らしい！{level}レベルをよく理解しています！🌟
                   </p>
                 )}
                 {percentage >= 60 && percentage < 80 && (
@@ -214,7 +321,7 @@ export default function N5QuizPage() {
               <div className="flex gap-4">
                 <button
                   onClick={handleRestart}
-                  className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-xl transition-all cursor-pointer"
+                  className={`flex-1 ${colors.button} text-white font-bold py-4 rounded-xl transition-all cursor-pointer`}
                 >
                   もう一度挑戦
                 </button>
@@ -235,7 +342,7 @@ export default function N5QuizPage() {
   // 퀴즈 화면
   return (
     <MainLayout>
-      <section className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 py-8">
+      <section className={`min-h-screen bg-gradient-to-br ${colors.gradient} py-8`}>
         <div className="container mx-auto px-4 max-w-3xl">
           {/* 헤더 */}
           <div className="mb-6">
@@ -247,9 +354,9 @@ export default function N5QuizPage() {
             </Link>
             <div className="flex items-center justify-between">
               <h1 className="text-2xl font-bold text-gray-900">
-                JLPT N5 問題演習
+                JLPT {level} 問題演習
               </h1>
-              <div className="bg-green-500 text-white px-4 py-2 rounded-full font-bold">
+              <div className={`${colors.badge} text-white px-4 py-2 rounded-full font-bold`}>
                 {currentQuestionIndex + 1} / {quizzes.length}
               </div>
             </div>
@@ -258,7 +365,7 @@ export default function N5QuizPage() {
           {/* 진행바 */}
           <div className="bg-gray-200 rounded-full h-3 mb-8">
             <div
-              className="bg-green-500 h-3 rounded-full transition-all duration-300"
+              className={`${colors.progress} h-3 rounded-full transition-all duration-300`}
               style={{
                 width: `${((currentQuestionIndex + 1) / quizzes.length) * 100}%`,
               }}
@@ -273,29 +380,28 @@ export default function N5QuizPage() {
             </p>
 
             {/* 문제 */}
-            <div className="bg-gradient-to-br from-green-50 to-blue-50 rounded-xl p-8 mb-8">
+            <div className={`bg-gradient-to-br ${colors.gradient} rounded-xl p-8 mb-8`}>
               <p className="text-5xl font-bold text-center text-gray-900">
                 {currentQuestion.question}
               </p>
             </div>
 
             {/* 선택지 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div className="grid grid-cols-1 gap-3 mb-6">
               {currentQuestion.choices.map((choice, index) => {
-                let buttonClass =
-                  'p-6 text-xl rounded-xl border-2 font-bold transition-all cursor-pointer ';
+                const isSelected = selectedAnswer === choice;
+                const isCorrectChoice = choice === currentQuestion.correctAnswer;
 
-                if (!isAnswered) {
-                  buttonClass +=
-                    'border-gray-300 hover:border-green-500 hover:bg-green-50 hover:scale-105';
-                } else if (choice === currentQuestion.correctAnswer) {
-                  buttonClass +=
-                    'border-green-500 bg-green-100 text-green-700 scale-105';
-                } else if (choice === selectedAnswer) {
-                  buttonClass +=
-                    'border-red-500 bg-red-100 text-red-700';
-                } else {
-                  buttonClass += 'border-gray-200 bg-gray-50 text-gray-400';
+                let buttonStyle = 'bg-white border-2 border-gray-300 hover:border-gray-400';
+
+                if (isAnswered) {
+                  if (isCorrectChoice) {
+                    // 정답은 항상 초록색
+                    buttonStyle = 'bg-green-500 hover:bg-green-500 text-white border-transparent';
+                  } else if (isSelected && !isCorrect) {
+                    // 오답은 항상 빨간색
+                    buttonStyle = 'bg-red-500 hover:bg-red-500 text-white border-transparent';
+                  }
                 }
 
                 return (
@@ -303,37 +409,32 @@ export default function N5QuizPage() {
                     key={index}
                     onClick={() => handleAnswer(choice)}
                     disabled={isAnswered}
-                    className={buttonClass}
+                    className={`${buttonStyle} p-4 rounded-xl text-left transition-all text-lg font-medium disabled:cursor-not-allowed`}
                   >
                     {choice}
-                    {isAnswered && choice === currentQuestion.correctAnswer && (
-                      <span className="ml-2">✅</span>
-                    )}
-                    {isAnswered &&
-                      choice === selectedAnswer &&
-                      choice !== currentQuestion.correctAnswer && (
-                        <span className="ml-2">❌</span>
-                      )}
                   </button>
                 );
               })}
             </div>
 
-            {/* 설명 (답변 후) */}
+            {/* 해설 */}
             {isAnswered && (
               <div
-                className={`p-6 rounded-xl mb-6 animate-[slideDown_0.3s_ease-out] ${
-                  isCorrect ? 'bg-green-50 border-2 border-green-200' : 'bg-red-50 border-2 border-red-200'
-                }`}
+                className={`${
+                  isCorrect ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+                } border-2 rounded-xl p-6 mb-6`}
               >
-                <p
-                  className={`font-bold text-lg mb-2 ${
-                    isCorrect ? 'text-green-700' : 'text-red-700'
-                  }`}
-                >
-                  {isCorrect ? '🎉 正解です！' : '❌ 不正解です'}
-                </p>
-                <p className="text-gray-700">{currentQuestion.explanation}</p>
+                <div className="flex items-start gap-3">
+                  <div className="text-2xl">{isCorrect ? '✅' : '❌'}</div>
+                  <div className="flex-1">
+                    <p className="font-bold text-lg mb-2">
+                      {isCorrect ? '正解！' : '不正解'}
+                    </p>
+                    {currentQuestion.explanation && (
+                      <p className="text-gray-700">{currentQuestion.explanation}</p>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
 
@@ -341,18 +442,11 @@ export default function N5QuizPage() {
             {isAnswered && (
               <button
                 onClick={handleNext}
-                className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-xl transition-all cursor-pointer animate-[slideUp_0.3s_ease-out]"
+                className={`w-full ${colors.button} text-white font-bold py-4 rounded-xl transition-all`}
               >
-                {currentQuestionIndex < quizzes.length - 1
-                  ? '次の問題へ →'
-                  : '結果を見る 🎯'}
+                {currentQuestionIndex < quizzes.length - 1 ? '次の問題' : '結果を見る'}
               </button>
             )}
-          </div>
-
-          {/* 현재 점수 */}
-          <div className="text-center text-gray-600">
-            現在のスコア: {score} / {currentQuestionIndex + (isAnswered ? 1 : 0)}
           </div>
         </div>
       </section>

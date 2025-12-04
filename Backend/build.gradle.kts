@@ -36,11 +36,12 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
 
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0")
-	implementation("org.springframework.boot:spring-boot-starter-security") // 추가
-	implementation("io.jsonwebtoken:jjwt-api:0.12.3") // 추가
-	runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.3") // 추가
-	runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.3") // 추가
-	testImplementation("org.springframework.security:spring-security-test") // 추가
+	implementation("org.springframework.boot:spring-boot-starter-security")
+	implementation("io.jsonwebtoken:jjwt-api:0.12.3")
+	runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.3")
+	runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.3")
+	testImplementation("org.springframework.security:spring-security-test")
+    implementation("com.opencsv:opencsv:5.9")
 }
 
 tasks.withType<Test> {

@@ -26,4 +26,13 @@ public interface QuizWordRepository extends JpaRepository<QuizWord, Long> {
 
     // 모든 JLPT 단어 조회
     List<QuizWord> findBySource(WordSource source);
+
+    boolean existsBySourceAndSourceDetailAndWordAndHiragana(
+            WordSource source,
+            String sourceDetail,
+            String word,
+            String hiragana
+    );
+
+    long countBySource(WordSource source);
 }

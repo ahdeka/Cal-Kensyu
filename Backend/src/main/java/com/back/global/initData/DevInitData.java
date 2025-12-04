@@ -2,9 +2,11 @@ package com.back.global.initData;
 
 import com.back.domain.diary.entity.Diary;
 import com.back.domain.diary.repository.DiaryRepository;
+import com.back.domain.quiz.entity.JlptLevel;
 import com.back.domain.quiz.entity.QuizWord;
 import com.back.domain.quiz.entity.WordSource;
 import com.back.domain.quiz.repository.QuizWordRepository;
+import com.back.domain.quiz.service.JlptCsvImportService;
 import com.back.domain.user.entity.Role;
 import com.back.domain.user.entity.User;
 import com.back.domain.user.repository.UserRepository;
@@ -17,9 +19,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Profile;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.time.LocalDate;
 
 @Slf4j
@@ -33,6 +40,7 @@ public class DevInitData {
     private final PasswordEncoder passwordEncoder;
     private final VocabularyRepository  vocabularyRepository;
     private final QuizWordRepository  quizWordRepository;
+    private final JlptCsvImportService jlptCsvImportService;
 
     @Bean
     ApplicationRunner devInitDataApplicationRunner() {
@@ -51,40 +59,12 @@ public class DevInitData {
             return;
         }
 
-        createQuizWord(WordSource.JLPT, "N5", "食べる", "たべる", "먹다");
-        createQuizWord(WordSource.JLPT, "N5", "学校", "がっこう", "학교");
-        createQuizWord(WordSource.JLPT, "N5", "本", "ほん", "책");
-        createQuizWord(WordSource.JLPT, "N5", "明日", "あした", "내일");
-        createQuizWord(WordSource.JLPT, "N5", "見る", "みる", "보다");
-        createQuizWord(WordSource.JLPT, "N5", "行く", "いく", "가다");
-        createQuizWord(WordSource.JLPT, "N5", "水", "みず", "물");
-        createQuizWord(WordSource.JLPT, "N5", "大きい", "おおきい", "크다");
-        createQuizWord(WordSource.JLPT, "N5", "友達", "ともだち", "친구");
-        createQuizWord(WordSource.JLPT, "N5", "買う", "かう", "사다");
-
-        createQuizWord(WordSource.JLPT, "N5", "飲む", "のむ", "마시다");
-        createQuizWord(WordSource.JLPT, "N5", "寝る", "ねる", "자다");
-        createQuizWord(WordSource.JLPT, "N5", "来る", "くる", "오다");
-        createQuizWord(WordSource.JLPT, "N5", "帰る", "かえる", "돌아가다");
-        createQuizWord(WordSource.JLPT, "N5", "読む", "よむ", "읽다");
-        createQuizWord(WordSource.JLPT, "N5", "書く", "かく", "쓰다");
-        createQuizWord(WordSource.JLPT, "N5", "聞く", "きく", "듣다");
-        createQuizWord(WordSource.JLPT, "N5", "話す", "はなす", "말하다");
-        createQuizWord(WordSource.JLPT, "N5", "分かる", "わかる", "알다");
-        createQuizWord(WordSource.JLPT, "N5", "ある", "ある", "있다(사물)");
-
-        createQuizWord(WordSource.JLPT, "N3", "設立", "せつりつ", "설립");
-        createQuizWord(WordSource.JLPT, "N3", "効率", "こうりつ", "효율");
-        createQuizWord(WordSource.JLPT, "N3", "貿易", "ぼうえき", "무역");
-        createQuizWord(WordSource.JLPT, "N3", "政策", "せいさく", "정책");
-        createQuizWord(WordSource.JLPT, "N3", "普及", "ふきゅう", "보급");
-        createQuizWord(WordSource.JLPT, "N3", "保障", "ほしょう", "보장");
-        createQuizWord(WordSource.JLPT, "N3", "傾向", "けいこう", "경향");
-        createQuizWord(WordSource.JLPT, "N3", "規模", "きぼ", "규모");
-        createQuizWord(WordSource.JLPT, "N3", "著しい", "いちじるしい", "현저하다");
-        createQuizWord(WordSource.JLPT, "N3", "拡大", "かくだい", "확대");
-
-        log.info("Quiz単語生成完了: N5 20個, N3 10個");
+        // CSV에서 JLPT 단어 로드 시도
+        try {
+            loadJlptWordsFromCsv();
+        } catch (Exception e) {
+            log.warn("JLPT単語のCSVロードに失敗しました。", e);
+        }
     }
 
     @Transactional
@@ -273,6 +253,90 @@ public class DevInitData {
                 .build();
 
         vocabularyRepository.save(vocabulary);
+    }
+
+    private void loadJlptWordsFromCsv() {
+        log.info("JLPT 単語データをCSVから読み込んでいます...");
+
+        int totalLoaded = 0;
+
+        for (JlptLevel level : JlptLevel.values()) {
+            try {
+                String filename = level.name().toLowerCase() + ".csv";
+                ClassPathResource resource = new ClassPathResource("data/jlpt/" + filename);
+
+                if (!resource.exists()) {
+                    log.warn("{} ファイルが見つかりません: {}", level.name(), filename);
+                    continue;
+                }
+
+                MultipartFile multipartFile = convertToMultipartFile(resource, filename);
+                int count = jlptCsvImportService.importJlptCsv(multipartFile, level);
+                totalLoaded += count;
+
+                log.info("{} 単語 {}個を登録しました。", level.name(), count);
+
+            } catch (Exception e) {
+                log.error("{} データの読み込み中にエラー: {}", level.name(), e.getMessage());
+            }
+        }
+
+        if (totalLoaded == 0) {
+            throw new RuntimeException("CSVファイルから単語を読み込めませんでした");
+        }
+
+        long totalCount = quizWordRepository.countBySource(WordSource.JLPT);
+        log.info("JLPT 単語データの読み込み完了。総単語数: {}", totalCount);
+    }
+
+    private MultipartFile convertToMultipartFile(ClassPathResource resource, String filename) throws IOException {
+        return new MultipartFile() {
+            @Override
+            public String getName() {
+                return "file";
+            }
+
+            @Override
+            public String getOriginalFilename() {
+                return filename;
+            }
+
+            @Override
+            public String getContentType() {
+                return "text/csv";
+            }
+
+            @Override
+            public boolean isEmpty() {
+                return false;
+            }
+
+            @Override
+            public long getSize() {
+                try {
+                    return resource.contentLength();
+                } catch (IOException e) {
+                    return 0;
+                }
+            }
+
+            @Override
+            public byte[] getBytes() throws IOException {
+                return resource.getInputStream().readAllBytes();
+            }
+
+            @Override
+            public InputStream getInputStream() throws IOException {
+                return resource.getInputStream();
+            }
+
+            @Override
+            public void transferTo(File dest) throws IOException {
+                try (InputStream in = resource.getInputStream()) {
+                    java.nio.file.Files.copy(in, dest.toPath());
+                }
+            }
+        };
     }
 
     private void createQuizWord(WordSource source, String sourceDetail,

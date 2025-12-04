@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -57,20 +58,15 @@ public class QuizService {
 
     // 단일 퀴즈 생성
     private QuizQuestionResponse generateSingleQuiz(QuizWord correctWord, String level) {
-        // 1. 오답 선택지 3개 가져오기 (같은 레벨에서)
-        List<QuizWord> wrongWords = quizWordRepository.findRandomByJlptLevelExcluding(
-                WordSource.JLPT.name(),
-                level,
-                correctWord.getId(),
-                3
-        );
+        // 1. 퀴즈 타입 랜덤 결정 (한자→히라가나 or 히라가나→뜻)
+        QuizType quizType = Math.random() < 0.5 ? QuizType.KANJI_TO_HIRAGANA : QuizType.HIRAGANA_TO_MEANING;
+
+        // 2. 오답 선택지 3개 가져오기 (비슷한 길이의 단어)
+        List<QuizWord> wrongWords = getSimilarLengthWrongAnswers(correctWord, level, quizType);
 
         if (wrongWords.size() < 3) {
             throw new ServiceException("500", "오답 선택지 생성 실패");
         }
-
-        // 2. 퀴즈 타입 랜덤 결정 (한자→히라가나 or 히라가나→뜻)
-        QuizType quizType = Math.random() < 0.5 ? QuizType.KANJI_TO_HIRAGANA : QuizType.HIRAGANA_TO_MEANING;
 
         // 3. 문제와 선택지 생성
         String question;
@@ -118,6 +114,79 @@ public class QuizService {
                         correctWord.getMeaning()
                 ))
                 .build();
+    }
+
+    /**
+     * 비슷한 길이의 오답 선택지를 가져옵니다.
+     * 정답과 ±2 글자 이내의 단어를 우선 선택하여 난이도를 높입니다.
+     */
+    private List<QuizWord> getSimilarLengthWrongAnswers(QuizWord correctWord, String level, QuizType quizType) {
+        // 정답의 길이 계산
+        int targetLength = quizType == QuizType.KANJI_TO_HIRAGANA
+                ? correctWord.getHiragana().length()
+                : correctWord.getMeaning().length();
+
+        // 같은 레벨의 모든 단어 가져오기 (정답 제외)
+        List<QuizWord> allWords = quizWordRepository.findBySourceAndSourceDetail(WordSource.JLPT, level)
+                .stream()
+                .filter(word -> !word.getId().equals(correctWord.getId()))
+                .collect(Collectors.toList());
+
+        // 우선순위별로 단어 분류
+        List<QuizWord> exactMatch = new ArrayList<>();      // 정확히 같은 길이
+        List<QuizWord> closeMatch = new ArrayList<>();      // ±1 글자
+        List<QuizWord> nearMatch = new ArrayList<>();       // ±2 글자
+        List<QuizWord> others = new ArrayList<>();          // 그 외
+
+        for (QuizWord word : allWords) {
+            int wordLength = quizType == QuizType.KANJI_TO_HIRAGANA
+                    ? word.getHiragana().length()
+                    : word.getMeaning().length();
+
+            int diff = Math.abs(wordLength - targetLength);
+
+            if (diff == 0) {
+                exactMatch.add(word);
+            } else if (diff == 1) {
+                closeMatch.add(word);
+            } else if (diff == 2) {
+                nearMatch.add(word);
+            } else {
+                others.add(word);
+            }
+        }
+
+        // 각 그룹을 섞기
+        Collections.shuffle(exactMatch);
+        Collections.shuffle(closeMatch);
+        Collections.shuffle(nearMatch);
+        Collections.shuffle(others);
+
+        // 우선순위에 따라 오답 선택 (3개 필요)
+        List<QuizWord> wrongAnswers = new ArrayList<>();
+
+        // 1순위: 정확히 같은 길이
+        wrongAnswers.addAll(exactMatch.stream().limit(3).collect(Collectors.toList()));
+        if (wrongAnswers.size() >= 3) {
+            return wrongAnswers.subList(0, 3);
+        }
+
+        // 2순위: ±1 글자
+        wrongAnswers.addAll(closeMatch.stream().limit(3 - wrongAnswers.size()).collect(Collectors.toList()));
+        if (wrongAnswers.size() >= 3) {
+            return wrongAnswers.subList(0, 3);
+        }
+
+        // 3순위: ±2 글자
+        wrongAnswers.addAll(nearMatch.stream().limit(3 - wrongAnswers.size()).collect(Collectors.toList()));
+        if (wrongAnswers.size() >= 3) {
+            return wrongAnswers.subList(0, 3);
+        }
+
+        // 4순위: 나머지 (충분하지 않으면 여기서 채움)
+        wrongAnswers.addAll(others.stream().limit(3 - wrongAnswers.size()).collect(Collectors.toList()));
+
+        return wrongAnswers;
     }
 
     /**

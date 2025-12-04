@@ -29,7 +29,7 @@ public class QuizWord extends BaseEntity {
     @Column(nullable = false, length = 100)
     private String hiragana;
 
-    @Column(nullable = false, length = 100)
+    @Column(nullable = false, length = 500)
     private String meaning;
 
     @Column(columnDefinition = "TEXT")
@@ -46,6 +46,17 @@ public class QuizWord extends BaseEntity {
 
     public boolean isUserWord() {
         return source == WordSource.USER_VOCABULARY || source == WordSource.USER_DIARY;
+    }
+
+    public JlptLevel getJlptLevel() {
+        if (source == WordSource.JLPT && sourceDetail != null) {
+            return JlptLevel.fromString(sourceDetail);
+        }
+        return null;
+    }
+
+    public boolean isJlptLevel(JlptLevel level) {
+        return isJlptWord() && level.name().equals(sourceDetail);
     }
 
 }
