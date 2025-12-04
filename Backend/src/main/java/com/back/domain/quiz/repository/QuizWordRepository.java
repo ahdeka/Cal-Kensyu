@@ -10,6 +10,7 @@ import java.util.List;
 
 public interface QuizWordRepository extends JpaRepository<QuizWord, Long> {
 
+    // JLPT 레벨별 조회
     List<QuizWord> findBySourceAndSourceDetail(WordSource source, String sourceDetail);
 
     // JLPT 레벨별 랜덤 조회
@@ -20,7 +21,9 @@ public interface QuizWordRepository extends JpaRepository<QuizWord, Long> {
     @Query(value = "SELECT * FROM quiz_words WHERE source = :source AND source_detail = :level AND id != :excludeId ORDER BY RAND() LIMIT :limit", nativeQuery = true)
     List<QuizWord> findRandomByJlptLevelExcluding(@Param("source") String source, @Param("level") String level, @Param("excludeId") Long excludeId, @Param("limit") int limit);
 
+    // 출처별 개수 조회
     long countBySourceAndSourceDetail(WordSource source, String sourceDetail);
 
+    // 모든 JLPT 단어 조회
     List<QuizWord> findBySource(WordSource source);
 }
