@@ -1,108 +1,86 @@
-// app/quiz/n3/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import MainLayout from '@/components/MainLayout';
-
-// Mock 데이터 (N3는 더 어려운 단어)
-const MOCK_N3_QUIZZES = [
-  {
-    id: 1,
-    question: '設立',
-    questionType: 'この単語の読み方は？',
-    choices: ['せつりつ', 'せつりゅう', 'せいりつ', 'せいりゅう'],
-    correctAnswer: 'せつりつ',
-    explanation: '「設立」は「せつりつ」と読みます。「설립하다」という意味です。',
-  },
-  {
-    id: 2,
-    question: 'こうりつ',
-    questionType: 'この単語の意味は？',
-    choices: ['효율', '공립', '고립', '합리'],
-    correctAnswer: '効率',
-    explanation: '「こうりつ（効率）」は「효율」という意味です。',
-  },
-  {
-    id: 3,
-    question: '貿易',
-    questionType: 'この単語の読み方は？',
-    choices: ['ぼうえき', 'ぼえき', 'もえき', 'ぼうやく'],
-    correctAnswer: 'ぼうえき',
-    explanation: '「貿易」は「ぼうえき」と読みます。「무역」という意味です。',
-  },
-  {
-    id: 4,
-    question: 'せいさく',
-    questionType: 'この単語の意味は？',
-    choices: ['정책', '제작', '생산', '제책'],
-    correctAnswer: '정책',
-    explanation: '「せいさく（政策）」は「정책」という意味です。',
-  },
-  {
-    id: 5,
-    question: '普及',
-    questionType: 'この単語の読み方は？',
-    choices: ['ふきゅう', 'ふきょう', 'ほきゅう', 'ほきょう'],
-    correctAnswer: 'ふきゅう',
-    explanation: '「普及」は「ふきゅう」と読みます。「보급」という意味です。',
-  },
-  {
-    id: 6,
-    question: 'ほしょう',
-    questionType: 'この単語の意味は？',
-    choices: ['보장', '보상', '보호', '보존'],
-    correctAnswer: '보장',
-    explanation: '「ほしょう（保障）」は「보장」という意味です。',
-  },
-  {
-    id: 7,
-    question: '傾向',
-    questionType: 'この単語の読み方は？',
-    choices: ['けいこう', 'けこう', 'きょうこう', 'きこう'],
-    correctAnswer: 'けいこう',
-    explanation: '「傾向」は「けいこう」と読みます。「경향」という意味です。',
-  },
-  {
-    id: 8,
-    question: 'きぼ',
-    questionType: 'この単語の意味は？',
-    choices: ['규모', '희망', '기본', '기부'],
-    correctAnswer: '규모',
-    explanation: '「きぼ（規模）」は「규모」という意味です。',
-  },
-  {
-    id: 9,
-    question: '著しい',
-    questionType: 'この単語の読み方は？',
-    choices: ['いちじるしい', 'あきらかしい', 'あらわしい', 'しるしい'],
-    correctAnswer: 'いちじるしい',
-    explanation: '「著しい」は「いちじるしい」と読みます。「현저하다」という意味です。',
-  },
-  {
-    id: 10,
-    question: 'かくだい',
-    questionType: 'この単語の意味は？',
-    choices: ['확대', '확장', '확보', '확인'],
-    correctAnswer: '확대',
-    explanation: '「かくだい（拡大）」は「확대」という意味です。',
-  },
-];
+import { quizService } from '@/lib/api/quizService';
+import { QuizQuestion } from '@/types/quiz';
 
 export default function N3QuizPage() {
   const router = useRouter();
+  const hasCheckedAuth = useRef(false);
+  const hasFetchedQuiz = useRef(false);
+
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [quizzes, setQuizzes] = useState<QuizQuestion[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [isAnswered, setIsAnswered] = useState(false);
   const [score, setScore] = useState(0);
   const [showResult, setShowResult] = useState(false);
 
-  const currentQuestion = MOCK_N3_QUIZZES[currentQuestionIndex];
-  const isCorrect = selectedAnswer === currentQuestion.correctAnswer;
+  useEffect(() => {
+    if (!hasCheckedAuth.current) {
+      hasCheckedAuth.current = true;
+      checkLoginStatus();
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isLoggedIn && !hasFetchedQuiz.current) {
+      hasFetchedQuiz.current = true;
+      fetchQuizzes();
+    }
+  }, [isLoggedIn]);
+
+  const checkLoginStatus = async () => {
+    try {
+      const response = await fetch('http://localhost:8080/api/auth/me', {
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        setIsLoggedIn(true);
+      } else {
+        alert('問題演習を利用するにはログインが必要です');
+        router.push('/login');
+      }
+    } catch (error) {
+      console.error('認証確認エラー:', error);
+      alert('問題演習を利用するにはログインが必要です');
+      router.push('/login');
+    } finally {
+      setCheckingAuth(false);
+    }
+  };
+
+  const fetchQuizzes = async () => {
+    setLoading(true);
+    try {
+      const data = await quizService.getQuizByLevel('N3', 5); // ✅ N3로 변경
+      console.log('Quiz data loaded:', data);
+      setQuizzes(data);
+    } catch (error: any) {
+      console.error('クイズ読込エラー:', error);
+      if (error.response?.status === 401) {
+        alert('ログインが必要です');
+        router.push('/login');
+      } else {
+        alert('クイズの読込に失敗しました');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const currentQuestion = quizzes[currentQuestionIndex] || null;
+  const isCorrect = currentQuestion ? selectedAnswer === currentQuestion.correctAnswer : false;
 
   const handleAnswer = (choice: string) => {
-    if (isAnswered) return;
+    if (isAnswered || !currentQuestion) return;
 
     setSelectedAnswer(choice);
     setIsAnswered(true);
@@ -113,7 +91,7 @@ export default function N3QuizPage() {
   };
 
   const handleNext = () => {
-    if (currentQuestionIndex < MOCK_N3_QUIZZES.length - 1) {
+    if (currentQuestionIndex < quizzes.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
       setSelectedAnswer(null);
       setIsAnswered(false);
@@ -128,11 +106,67 @@ export default function N3QuizPage() {
     setIsAnswered(false);
     setScore(0);
     setShowResult(false);
+    hasFetchedQuiz.current = false;
+    fetchQuizzes();
   };
+
+  // 로딩 중
+  if (checkingAuth || loading) {
+    return (
+      <MainLayout>
+        <section className="min-h-screen bg-gradient-to-br from-yellow-50 to-orange-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-4xl mb-4">📚</div>
+            <p className="text-gray-500 text-lg">読込中...</p>
+          </div>
+        </section>
+      </MainLayout>
+    );
+  }
+
+  // 퀴즈 데이터 없음
+  if (!loading && quizzes.length === 0) {
+    return (
+      <MainLayout>
+        <section className="min-h-screen bg-gradient-to-br from-yellow-50 to-orange-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-4xl mb-4">😢</div>
+            <p className="text-gray-700 text-lg mb-4">クイズデータがありません</p>
+            <Link
+              href="/quiz"
+              className="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-3 rounded-xl font-bold transition-all inline-block"
+            >
+              レベル選択に戻る
+            </Link>
+          </div>
+        </section>
+      </MainLayout>
+    );
+  }
+
+  // currentQuestion이 null인 경우
+  if (!currentQuestion && !showResult) {
+    return (
+      <MainLayout>
+        <section className="min-h-screen bg-gradient-to-br from-yellow-50 to-orange-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-4xl mb-4">⚠️</div>
+            <p className="text-gray-700 text-lg mb-4">問題を読み込めませんでした</p>
+            <button
+              onClick={() => router.push('/quiz')}
+              className="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-3 rounded-xl font-bold transition-all"
+            >
+              レベル選択に戻る
+            </button>
+          </div>
+        </section>
+      </MainLayout>
+    );
+  }
 
   // 결과 화면
   if (showResult) {
-    const percentage = (score / MOCK_N3_QUIZZES.length) * 100;
+    const percentage = (score / quizzes.length) * 100;
     return (
       <MainLayout>
         <section className="min-h-screen bg-gradient-to-br from-yellow-50 to-orange-50 py-16">
@@ -150,7 +184,7 @@ export default function N3QuizPage() {
 
               <div className="bg-yellow-50 rounded-xl p-8 mb-8">
                 <div className="text-5xl font-bold text-yellow-600 mb-2">
-                  {score} / {MOCK_N3_QUIZZES.length}
+                  {score} / {quizzes.length}
                 </div>
                 <div className="text-xl text-gray-700">
                   正解率: {percentage.toFixed(0)}%
@@ -214,7 +248,7 @@ export default function N3QuizPage() {
                 JLPT N3 問題演習
               </h1>
               <div className="bg-yellow-500 text-white px-4 py-2 rounded-full font-bold">
-                {currentQuestionIndex + 1} / {MOCK_N3_QUIZZES.length}
+                {currentQuestionIndex + 1} / {quizzes.length}
               </div>
             </div>
           </div>
@@ -224,7 +258,7 @@ export default function N3QuizPage() {
             <div
               className="bg-yellow-500 h-3 rounded-full transition-all duration-300"
               style={{
-                width: `${((currentQuestionIndex + 1) / MOCK_N3_QUIZZES.length) * 100}%`,
+                width: `${((currentQuestionIndex + 1) / quizzes.length) * 100}%`,
               }}
             />
           </div>
@@ -307,7 +341,7 @@ export default function N3QuizPage() {
                 onClick={handleNext}
                 className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-4 rounded-xl transition-all cursor-pointer animate-[slideUp_0.3s_ease-out]"
               >
-                {currentQuestionIndex < MOCK_N3_QUIZZES.length - 1
+                {currentQuestionIndex < quizzes.length - 1
                   ? '次の問題へ →'
                   : '結果を見る 🎯'}
               </button>

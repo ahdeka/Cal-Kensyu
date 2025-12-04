@@ -62,6 +62,17 @@ public class DevInitData {
         createQuizWord(WordSource.JLPT, "N5", "友達", "ともだち", "친구");
         createQuizWord(WordSource.JLPT, "N5", "買う", "かう", "사다");
 
+        createQuizWord(WordSource.JLPT, "N5", "飲む", "のむ", "마시다");
+        createQuizWord(WordSource.JLPT, "N5", "寝る", "ねる", "자다");
+        createQuizWord(WordSource.JLPT, "N5", "来る", "くる", "오다");
+        createQuizWord(WordSource.JLPT, "N5", "帰る", "かえる", "돌아가다");
+        createQuizWord(WordSource.JLPT, "N5", "読む", "よむ", "읽다");
+        createQuizWord(WordSource.JLPT, "N5", "書く", "かく", "쓰다");
+        createQuizWord(WordSource.JLPT, "N5", "聞く", "きく", "듣다");
+        createQuizWord(WordSource.JLPT, "N5", "話す", "はなす", "말하다");
+        createQuizWord(WordSource.JLPT, "N5", "分かる", "わかる", "알다");
+        createQuizWord(WordSource.JLPT, "N5", "ある", "ある", "있다(사물)");
+
         createQuizWord(WordSource.JLPT, "N3", "設立", "せつりつ", "설립");
         createQuizWord(WordSource.JLPT, "N3", "効率", "こうりつ", "효율");
         createQuizWord(WordSource.JLPT, "N3", "貿易", "ぼうえき", "무역");
@@ -73,7 +84,7 @@ public class DevInitData {
         createQuizWord(WordSource.JLPT, "N3", "著しい", "いちじるしい", "현저하다");
         createQuizWord(WordSource.JLPT, "N3", "拡大", "かくだい", "확대");
 
-        log.info("Quiz単語生成完了: N5 10個, N3 10個");
+        log.info("Quiz単語生成完了: N5 20個, N3 10個");
     }
 
     @Transactional

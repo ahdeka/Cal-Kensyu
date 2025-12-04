@@ -33,8 +33,11 @@ public class QuizService {
         }
 
         if (wordCount < count + 3) {
-            throw new ServiceException("400",
-                    "選択肢を作成するのに十分な単語がありません（最低でも問題数 + 3個必要）");
+            count = (int)(wordCount - 3);
+            if (count < 1) {
+                throw new ServiceException("400",
+                        String.format("JLPT %s 単語が不足しています（最低 4個必要）", level));
+            }
         }
 
         // 2. 랜덤으로 문제 단어 선택

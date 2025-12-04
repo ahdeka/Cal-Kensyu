@@ -1,107 +1,88 @@
+// Frontend/app/quiz/n5/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import MainLayout from '@/components/MainLayout';
-
-// Mock 데이터
-const MOCK_N5_QUIZZES = [
-  {
-    id: 1,
-    question: '食べる',
-    questionType: 'この単語の読み方は？',
-    choices: ['たべる', 'のべる', 'とべる', 'かべる'],
-    correctAnswer: 'たべる',
-    explanation: '「食べる」は「たべる」と読みます。「食事をする」という意味です。',
-  },
-  {
-    id: 2,
-    question: 'がっこう',
-    questionType: 'この単語の意味は？',
-    choices: ['학교', '회사', '집', '병원'],
-    correctAnswer: '학교',
-    explanation: '「がっこう（学校）」は韓国語で「학교」です。',
-  },
-  {
-    id: 3,
-    question: '本',
-    questionType: 'この単語の意味は？',
-    choices: ['책', '펜', '노트', '가방'],
-    correctAnswer: '책',
-    explanation: '「本（ほん）」は「책」という意味です。',
-  },
-  {
-    id: 4,
-    question: 'あした',
-    questionType: 'この単語の意味は？',
-    choices: ['내일', '오늘', '어제', '모레'],
-    correctAnswer: '내일',
-    explanation: '「あした（明日）」は「내일」という意味です。',
-  },
-  {
-    id: 5,
-    question: '見る',
-    questionType: 'この単語の読み方は？',
-    choices: ['みる', 'きる', 'いる', 'ひる'],
-    correctAnswer: 'みる',
-    explanation: '「見る」は「みる」と読みます。「보다」という意味です。',
-  },
-  {
-    id: 6,
-    question: 'いく',
-    questionType: 'この単語の意味は？',
-    choices: ['가다', '오다', '돌아가다', '나가다'],
-    correctAnswer: '가다',
-    explanation: '「いく（行く）」は「가다」という意味です。',
-  },
-  {
-    id: 7,
-    question: '水',
-    questionType: 'この単語の読み方は？',
-    choices: ['みず', 'すい', 'かわ', 'うみ'],
-    correctAnswer: 'みず',
-    explanation: '「水」は「みず」と読みます。「물」という意味です。',
-  },
-  {
-    id: 8,
-    question: 'おおきい',
-    questionType: 'この単語の意味は？',
-    choices: ['크다', '작다', '길다', '짧다'],
-    correctAnswer: '크다',
-    explanation: '「おおきい（大きい）」は「크다」という意味です。',
-  },
-  {
-    id: 9,
-    question: '友達',
-    questionType: 'この単語の読み方は？',
-    choices: ['ともだち', 'ゆうだち', 'ゆだち', 'ともたち'],
-    correctAnswer: 'ともだち',
-    explanation: '「友達」は「ともだち」と読みます。「친구」という意味です。',
-  },
-  {
-    id: 10,
-    question: 'かう',
-    questionType: 'この単語の意味は？',
-    choices: ['사다', '팔다', '주다', '받다'],
-    correctAnswer: '사다',
-    explanation: '「かう（買う）」は「사다」という意味です。',
-  },
-];
+import { quizService } from '@/lib/api/quizService';
+import { QuizQuestion } from '@/types/quiz';
 
 export default function N5QuizPage() {
   const router = useRouter();
+  const hasCheckedAuth = useRef(false);
+  const hasFetchedQuiz = useRef(false);
+
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [quizzes, setQuizzes] = useState<QuizQuestion[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [isAnswered, setIsAnswered] = useState(false);
   const [score, setScore] = useState(0);
   const [showResult, setShowResult] = useState(false);
 
-  const currentQuestion = MOCK_N5_QUIZZES[currentQuestionIndex];
-  const isCorrect = selectedAnswer === currentQuestion.correctAnswer;
+  useEffect(() => {
+    if (!hasCheckedAuth.current) {
+      hasCheckedAuth.current = true;
+      checkLoginStatus();
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isLoggedIn && !hasFetchedQuiz.current) {
+      hasFetchedQuiz.current = true;
+      fetchQuizzes();
+    }
+  }, [isLoggedIn]);
+
+  const checkLoginStatus = async () => {
+    try {
+      const response = await fetch('http://localhost:8080/api/auth/me', {
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        setIsLoggedIn(true);
+      } else {
+        alert('問題演習を利用するにはログインが必要です');
+        router.push('/login');
+      }
+    } catch (error) {
+      console.error('認証確認エラー:', error);
+      alert('問題演習を利用するにはログインが必要です');
+      router.push('/login');
+    } finally {
+      setCheckingAuth(false);
+    }
+  };
+
+  const fetchQuizzes = async () => {
+    setLoading(true);
+    try {
+      const data = await quizService.getQuizByLevel('N5', 10);
+      console.log('Quiz data loaded:', data); // 디버깅용
+      setQuizzes(data);
+    } catch (error: any) {
+      console.error('クイズ読込エラー:', error);
+      if (error.response?.status === 401) {
+        alert('ログインが必要です');
+        router.push('/login');
+      } else {
+        alert('クイズの読込に失敗しました');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ 중요: currentQuestion을 안전하게 가져오기
+  const currentQuestion = quizzes[currentQuestionIndex] || null;
+  const isCorrect = currentQuestion ? selectedAnswer === currentQuestion.correctAnswer : false;
 
   const handleAnswer = (choice: string) => {
-    if (isAnswered) return;
+    if (isAnswered || !currentQuestion) return;
 
     setSelectedAnswer(choice);
     setIsAnswered(true);
@@ -112,7 +93,7 @@ export default function N5QuizPage() {
   };
 
   const handleNext = () => {
-    if (currentQuestionIndex < MOCK_N5_QUIZZES.length - 1) {
+    if (currentQuestionIndex < quizzes.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
       setSelectedAnswer(null);
       setIsAnswered(false);
@@ -127,11 +108,67 @@ export default function N5QuizPage() {
     setIsAnswered(false);
     setScore(0);
     setShowResult(false);
+    hasFetchedQuiz.current = false;
+    fetchQuizzes();
   };
+
+  // 로딩 중
+  if (checkingAuth || loading) {
+    return (
+      <MainLayout>
+        <section className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-4xl mb-4">📚</div>
+            <p className="text-gray-500 text-lg">読込中...</p>
+          </div>
+        </section>
+      </MainLayout>
+    );
+  }
+
+  // ✅ 퀴즈 데이터 없음 체크 추가
+  if (!loading && quizzes.length === 0) {
+    return (
+      <MainLayout>
+        <section className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-4xl mb-4">😢</div>
+            <p className="text-gray-700 text-lg mb-4">クイズデータがありません</p>
+            <Link
+              href="/quiz"
+              className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-xl font-bold transition-all inline-block"
+            >
+              レベル選択に戻る
+            </Link>
+          </div>
+        </section>
+      </MainLayout>
+    );
+  }
+
+  // ✅ currentQuestion이 null인 경우 체크
+  if (!currentQuestion && !showResult) {
+    return (
+      <MainLayout>
+        <section className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-4xl mb-4">⚠️</div>
+            <p className="text-gray-700 text-lg mb-4">問題を読み込めませんでした</p>
+            <button
+              onClick={() => router.push('/quiz')}
+              className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-xl font-bold transition-all"
+            >
+              レベル選択に戻る
+            </button>
+          </div>
+        </section>
+      </MainLayout>
+    );
+  }
 
   // 결과 화면
   if (showResult) {
-    const percentage = (score / MOCK_N5_QUIZZES.length) * 100;
+    const percentage = (score / quizzes.length) * 100;
     return (
       <MainLayout>
         <section className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 py-16">
@@ -149,7 +186,7 @@ export default function N5QuizPage() {
 
               <div className="bg-green-50 rounded-xl p-8 mb-8">
                 <div className="text-5xl font-bold text-green-600 mb-2">
-                  {score} / {MOCK_N5_QUIZZES.length}
+                  {score} / {quizzes.length}
                 </div>
                 <div className="text-xl text-gray-700">
                   正解率: {percentage.toFixed(0)}%
@@ -213,7 +250,7 @@ export default function N5QuizPage() {
                 JLPT N5 問題演習
               </h1>
               <div className="bg-green-500 text-white px-4 py-2 rounded-full font-bold">
-                {currentQuestionIndex + 1} / {MOCK_N5_QUIZZES.length}
+                {currentQuestionIndex + 1} / {quizzes.length}
               </div>
             </div>
           </div>
@@ -223,7 +260,7 @@ export default function N5QuizPage() {
             <div
               className="bg-green-500 h-3 rounded-full transition-all duration-300"
               style={{
-                width: `${((currentQuestionIndex + 1) / MOCK_N5_QUIZZES.length) * 100}%`,
+                width: `${((currentQuestionIndex + 1) / quizzes.length) * 100}%`,
               }}
             />
           </div>
@@ -306,7 +343,7 @@ export default function N5QuizPage() {
                 onClick={handleNext}
                 className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-xl transition-all cursor-pointer animate-[slideUp_0.3s_ease-out]"
               >
-                {currentQuestionIndex < MOCK_N5_QUIZZES.length - 1
+                {currentQuestionIndex < quizzes.length - 1
                   ? '次の問題へ →'
                   : '結果を見る 🎯'}
               </button>
