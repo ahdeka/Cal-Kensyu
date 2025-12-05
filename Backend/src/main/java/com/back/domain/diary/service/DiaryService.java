@@ -8,7 +8,7 @@ import com.back.domain.diary.dto.response.DiaryResponse;
 import com.back.domain.diary.entity.Diary;
 import com.back.domain.diary.repository.DiaryRepository;
 import com.back.domain.user.entity.User;
-import com.back.domain.user.repository.UserRepository;
+import com.back.domain.user.service.UserService;
 import com.back.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +19,10 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * 日記サービス
+ * 日記のCRUDを提供
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -26,15 +30,15 @@ import java.util.stream.Collectors;
 public class DiaryService {
 
     private final DiaryRepository diaryRepository;
-    private final UserRepository userRepository;
+    private final UserService userService;
 
     @Transactional
     public DiaryResponse createDiary(String username, DiaryCreateRequest request) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ServiceException("404", "ユーザーが見つかりません"));
+        User user = userService.getUserByUsername(username);
 
         validateDiaryDate(request.diaryDate());
 
+        // 同じ日付の日記が既に存在するかチェック
         diaryRepository.findByUserAndDiaryDate(user, request.diaryDate())
                 .ifPresent(diary -> {
                     throw new ServiceException("400", "この日付の日記は既に存在します");
@@ -62,8 +66,7 @@ public class DiaryService {
     }
 
     public List<DiaryListResponse> getMyDiaries(String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ServiceException("404", "ユーザーが見つかりません"));
+        User user = userService.getUserByUsername(username);
 
         List<Diary> diaries = diaryRepository.findByUserOrderByCreateDateDesc(user);
 
@@ -88,18 +91,7 @@ public class DiaryService {
         Diary diary = diaryRepository.findById(diaryId)
                 .orElseThrow(() -> new ServiceException("404", "日記が見つかりません"));
 
-        validateDiaryDate(request.diaryDate());
-
-        if (!diary.getUser().getUsername().equals(username)) {
-            throw new ServiceException("403", "この日記を修正する権限がありません");
-        }
-
-        if (!diary.getDiaryDate().equals(request.diaryDate())) {
-            diaryRepository.findByUserAndDiaryDate(diary.getUser(), request.diaryDate())
-                    .ifPresent(d -> {
-                        throw new ServiceException("400", "この日付の日記は既に存在します");
-                    });
-        }
+        userService.validateOwnership(diary.getUser().getUsername(), username);
 
         diary.update(request.title(), request.content(), request.diaryDate(), request.isPublic());
 
@@ -111,9 +103,7 @@ public class DiaryService {
         Diary diary = diaryRepository.findById(diaryId)
                 .orElseThrow(() -> new ServiceException("404", "日記が見つかりません"));
 
-        if (!diary.getUser().getUsername().equals(username)) {
-            throw new ServiceException("403", "この日記を削除する権限がありません");
-        }
+        userService.validateOwnership(diary.getUser().getUsername(), username);
 
         diaryRepository.delete(diary);
     }

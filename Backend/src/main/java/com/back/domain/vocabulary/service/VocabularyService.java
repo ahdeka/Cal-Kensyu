@@ -1,7 +1,7 @@
 package com.back.domain.vocabulary.service;
 
 import com.back.domain.user.entity.User;
-import com.back.domain.user.repository.UserRepository;
+import com.back.domain.user.service.UserService;
 import com.back.domain.vocabulary.dto.request.VocabularyCreateRequest;
 import com.back.domain.vocabulary.dto.request.VocabularyUpdateRequest;
 import com.back.domain.vocabulary.dto.response.VocabularyListResponse;
@@ -18,6 +18,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * 単語帳サービス
+ * 単語の登録、照会、修正、削除機能を提供
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -25,12 +29,11 @@ import java.util.stream.Collectors;
 public class VocabularyService {
 
     private final VocabularyRepository vocabularyRepository;
-    private final UserRepository userRepository;
+    private final UserService userService;
 
     @Transactional
     public VocabularyResponse createVocabulary(String username, VocabularyCreateRequest request) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ServiceException("404", "ユーザーが見つかりません"));
+        User user = userService.getUserByUsername(username);
 
         Vocabulary vocabulary = Vocabulary.builder()
                 .user(user)
@@ -48,8 +51,7 @@ public class VocabularyService {
     }
 
     public List<VocabularyListResponse> getMyVocabularies(String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ServiceException("404", "ユーザーが見つかりません"));
+        User user = userService.getUserByUsername(username);
 
         List<Vocabulary> vocabularies = vocabularyRepository.findByUserOrderByCreateDateDesc(user);
 
@@ -59,8 +61,7 @@ public class VocabularyService {
     }
 
     public List<VocabularyListResponse> getVocabulariesByStatus(String username, StudyStatus studyStatus) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ServiceException("404", "ユーザーが見つかりません"));
+        User user = userService.getUserByUsername(username);
 
         List<Vocabulary> vocabularies = vocabularyRepository
                 .findByUserAndStudyStatusOrderByCreateDateDesc(user, studyStatus);
@@ -71,8 +72,7 @@ public class VocabularyService {
     }
 
     public List<VocabularyListResponse> searchVocabularies(String username, String keyword) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ServiceException("404", "ユーザーが見つかりません"));
+        User user = userService.getUserByUsername(username);
 
         List<Vocabulary> vocabularies = vocabularyRepository
                 .searchByKeyword(user, keyword);
@@ -83,24 +83,18 @@ public class VocabularyService {
     }
 
     public VocabularyResponse getVocabulary(Long vocabularyId, String username) {
-        Vocabulary vocabulary = vocabularyRepository.findById(vocabularyId)
-                .orElseThrow(() -> new ServiceException("404", "単語が見つかりません"));
+        Vocabulary vocabulary = getVocabularyById(vocabularyId);
 
-        if (!vocabulary.getUser().getUsername().equals(username)) {
-            throw new ServiceException("403", "この単語を閲覧する権限がありません");
-        }
+        userService.validateOwnership(vocabulary.getUser().getUsername(), username);
 
         return VocabularyResponse.from(vocabulary);
     }
 
     @Transactional
     public VocabularyResponse updateVocabulary(Long vocabularyId, String username, VocabularyUpdateRequest request) {
-        Vocabulary vocabulary = vocabularyRepository.findById(vocabularyId)
-                .orElseThrow(() -> new ServiceException("404", "単語が見つかりません"));
+        Vocabulary vocabulary = getVocabularyById(vocabularyId);
 
-        if (!vocabulary.getUser().getUsername().equals(username)) {
-            throw new ServiceException("403", "この単語を修正する権限がありません");
-        }
+        userService.validateOwnership(vocabulary.getUser().getUsername(), username);
 
         vocabulary.update(
                 request.word(),
@@ -116,27 +110,27 @@ public class VocabularyService {
 
     @Transactional
     public void deleteVocabulary(Long vocabularyId, String username) {
-        Vocabulary vocabulary = vocabularyRepository.findById(vocabularyId)
-                .orElseThrow(() -> new ServiceException("404", "単語が見つかりません"));
+        Vocabulary vocabulary = getVocabularyById(vocabularyId);
 
-        if (!vocabulary.getUser().getUsername().equals(username)) {
-            throw new ServiceException("403", "この単語を削除する権限がありません");
-        }
+        userService.validateOwnership(vocabulary.getUser().getUsername(), username);
 
         vocabularyRepository.delete(vocabulary);
     }
 
     @Transactional
     public VocabularyResponse updateStudyStatus(Long vocabularyId, String username, StudyStatus studyStatus) {
-        Vocabulary vocabulary = vocabularyRepository.findById(vocabularyId)
-                .orElseThrow(() -> new ServiceException("404", "単語が見つかりません"));
+        Vocabulary vocabulary = getVocabularyById(vocabularyId);
 
-        if (!vocabulary.getUser().getUsername().equals(username)) {
-            throw new ServiceException("403", "この単語の学習状態を変更する権限がありません");
-        }
+        userService.validateOwnership(vocabulary.getUser().getUsername(), username);
 
         vocabulary.updateStudyStatus(studyStatus);
 
         return VocabularyResponse.from(vocabulary);
+    }
+
+    // ===== Helper Method ===== /
+    private Vocabulary getVocabularyById(Long vocabularyId) {
+        return vocabularyRepository.findById(vocabularyId)
+                .orElseThrow(() -> new ServiceException("404", "単語が見つかりません"));
     }
 }
