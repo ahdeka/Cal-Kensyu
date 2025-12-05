@@ -56,19 +56,12 @@ public class AuthController {
         String refreshToken = jwtTokenProvider.createRefreshToken(request.username());
 
         // DBにrefreshTokenを保存
-        User user = userRepository.findByUsername(request.username())
-                .orElseThrow(() -> new ServiceException("404", "ユーザーが見つかりません"));
-
+        User user = userService.getUserByUsername(request.username());
         user.updateRefreshToken(refreshToken);
         userRepository.save(user);
 
         // Cookieに保存
-        addTokenCookies(response, accessToken, refreshToken);
-        Cookie accessTokenCookie = createCookie("accessToken", accessToken, ACCESS_TOKEN_COOKIE_MAX_AGE);
-        response.addCookie(accessTokenCookie);
-
-        Cookie refreshTokenCookie = createCookie("refreshToken", refreshToken, REFRESH_TOKEN_COOKIE_MAX_AGE);
-        response.addCookie(refreshTokenCookie);
+        addTokenCookies(response,  accessToken, refreshToken);
 
         return ResponseEntity.ok(
                 RsData.of("200", "ログイン成功")
@@ -77,7 +70,7 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ResponseEntity<RsData<Void>> logout(
-            @CookieValue(name = "refreshToken", required = false) String refreshToken,
+            @CookieValue(name = REFRESH_TOKEN_NAME, required = false) String refreshToken,
             HttpServletResponse response) {
 
         // DBからrefreshTokenを削除
@@ -99,7 +92,7 @@ public class AuthController {
 
     @PostMapping("/refresh")
     public ResponseEntity<RsData<Void>> refresh(
-            @CookieValue(name = "refreshToken", required = false) String refreshToken,
+            @CookieValue(name = REFRESH_TOKEN_NAME, required = false) String refreshToken,
             HttpServletResponse response) {
 
         validateRefreshToken(refreshToken);
@@ -141,7 +134,7 @@ public class AuthController {
 
     @GetMapping("/me")
     public ResponseEntity<RsData<UserInfoResponse>> getCurrentUser(
-            @CookieValue(name = "accessToken", required = false) String accessToken) {
+            @CookieValue(name = ACCESS_TOKEN_NAME, required = false) String accessToken) {
 
         validateAccessToken(accessToken);
 

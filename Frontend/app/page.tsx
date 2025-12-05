@@ -82,9 +82,6 @@ export default function HomePage() {
             </div>
             
             <div className="bg-gray-100 p-8 rounded-lg shadow-sm hover:shadow-md transition-shadow relative">
-              <div className="absolute top-4 right-4 bg-yellow-400 text-xs font-bold px-3 py-1 rounded-full">
-                準備中
-              </div>
               <h4 className="text-2xl font-bold text-[#a80000] mb-4">
                 ✏️ 問題演習
               </h4>

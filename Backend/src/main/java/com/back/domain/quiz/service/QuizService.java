@@ -1,6 +1,7 @@
 package com.back.domain.quiz.service;
 
 import com.back.domain.quiz.dto.response.QuizQuestionResponse;
+import com.back.domain.quiz.entity.JlptLevel;
 import com.back.domain.quiz.entity.QuizWord;
 import com.back.domain.quiz.entity.WordSource;
 import com.back.domain.quiz.repository.QuizWordRepository;
@@ -23,177 +24,279 @@ public class QuizService {
 
     private final QuizWordRepository quizWordRepository;
 
-    // JLPT 레벨별 퀴즈 생성
-    public List<QuizQuestionResponse> generateJlptQuiz(String level, int count) {
-        // 1. 해당 레벨의 단어 개수 확인
-        long wordCount = quizWordRepository.countBySourceAndSourceDetail(WordSource.JLPT, level);
+    private static final int MINIMUM_WORDS_REQUIRED = 4;
+    private static final int WRONG_ANSWERS_COUNT = 3;
 
-        if (wordCount < count) {
-            throw new ServiceException("400",
-                    String.format("JLPT %s 単語が不足しています。必要: %d個、実際: %d個", level, count, wordCount));
-        }
+    // JLPTレベル別クイズ生成
+    public List<QuizQuestionResponse> generateJlptQuiz(JlptLevel jlptLevel, int count) {
 
-        if (wordCount < count + 3) {
-            count = (int)(wordCount - 3);
-            if (count < 1) {
-                throw new ServiceException("400",
-                        String.format("JLPT %s 単語が不足しています（最低 4個必要）", level));
-            }
-        }
+        String levelName = jlptLevel.name();
 
-        // 2. 랜덤으로 문제 단어 선택
+        long wordCount = quizWordRepository.countBySourceAndSourceDetail(WordSource.JLPT, levelName);
+
+        validateWordCount(wordCount, count, levelName);
+
+        int actualCount = adjustQuizCount(wordCount, count);
+
+        // ランダムに問題単語を選択
         List<QuizWord> questionWords = quizWordRepository.findRandomByJlptLevel(
-                WordSource.JLPT.name(), level, count
+                WordSource.JLPT.name(),
+                levelName,
+                actualCount
         );
 
-        // 3. 각 단어마다 퀴즈 생성
-        List<QuizQuestionResponse> quizQuestionResponses = new ArrayList<>();
-        for (QuizWord correctWord : questionWords) {
-            QuizQuestionResponse quiz = generateSingleQuiz(correctWord, level);
-            quizQuestionResponses.add(quiz);
-        }
+        // 各単語ごとにクイズを生成
+        List<QuizQuestionResponse> quizzes = questionWords.stream()
+                .map(word -> generateSingleQuiz(word, levelName))
+                .collect(Collectors.toList());
 
-        return quizQuestionResponses;
+        return quizzes;
     }
 
-    // 단일 퀴즈 생성
-    private QuizQuestionResponse generateSingleQuiz(QuizWord correctWord, String level) {
-        // 1. 퀴즈 타입 랜덤 결정 (한자→히라가나 or 히라가나→뜻)
-        QuizType quizType = Math.random() < 0.5 ? QuizType.KANJI_TO_HIRAGANA : QuizType.HIRAGANA_TO_MEANING;
+    private void validateWordCount(long wordCount, int requestedCount, String level) {
+        if (wordCount < MINIMUM_WORDS_REQUIRED) {
+            throw new ServiceException("400",
+                    String.format("JLPT %s の単語が不足しています（最低 %d個必要、実際: %d個）",
+                            level, MINIMUM_WORDS_REQUIRED, wordCount));
+        }
 
-        // 2. 오답 선택지 3개 가져오기 (비슷한 길이의 단어)
+        if (wordCount < requestedCount) {
+            log.warn("要求されたクイズ数が単語数を超えています - 要求: {}, 実際: {}", requestedCount, wordCount);
+        }
+    }
+
+    private int adjustQuizCount(long wordCount, int requestedCount) {
+        // 誤答選択肢のために最低3つの余裕が必要
+        long maxPossibleCount = wordCount - WRONG_ANSWERS_COUNT;
+
+        if (requestedCount > maxPossibleCount) {
+            return (int) Math.max(1, maxPossibleCount);
+        }
+
+        return requestedCount;
+    }
+
+    // 単一クイズ生成
+    private QuizQuestionResponse generateSingleQuiz(QuizWord correctWord, String level) {
+        // クイズタイプをランダムに決定（漢字→ひらがな or ひらがな→意味）
+        QuizType quizType = determineQuizType();
+
+        // 2. 誤答選択肢3つを取得（似た長さの単語）
         List<QuizWord> wrongWords = getSimilarLengthWrongAnswers(correctWord, level, quizType);
 
-        if (wrongWords.size() < 3) {
-            throw new ServiceException("500", "오답 선택지 생성 실패");
-        }
+        validateWrongAnswers(wrongWords);
 
-        // 3. 문제와 선택지 생성
-        String question;
-        String questionType;
-        List<String> choices = new ArrayList<>();
-        String correctAnswer;
+        QuizContent content = buildQuizContent(correctWord, wrongWords, quizType, level);
 
-        if (quizType == QuizType.KANJI_TO_HIRAGANA) {
-            // 한자 → 히라가나
-            question = correctWord.getWord();
-            questionType = "この単語の読み方は？";
-            correctAnswer = correctWord.getHiragana();
+        Collections.shuffle(content.choices);
 
-            choices.add(correctWord.getHiragana());
-            for (QuizWord wrong : wrongWords) {
-                choices.add(wrong.getHiragana());
-            }
-        } else {
-            // 히라가나 → 뜻
-            question = correctWord.getHiragana();
-            questionType = "この単語の意味は？";
-            correctAnswer = correctWord.getMeaning();
-
-            choices.add(correctWord.getMeaning());
-            for (QuizWord wrong : wrongWords) {
-                choices.add(wrong.getMeaning());
-            }
-        }
-
-        // 4. 선택지 섞기
-        Collections.shuffle(choices);
-
-        // 5. DTO 생성
         return QuizQuestionResponse.builder()
                 .id(correctWord.getId())
-                .question(question)
-                .questionType(questionType)
-                .choices(choices)
-                .correctAnswer(correctAnswer)
+                .question(content.question)
+                .questionType(content.questionType)
+                .choices(content.choices)
+                .correctAnswer(content.correctAnswer)
                 .level(level)
-                .explanation(String.format(
-                        "「%s」は「%s」と読み、「%s」という意味です。",
-                        correctWord.getWord(),
-                        correctWord.getHiragana(),
-                        correctWord.getMeaning()
-                ))
+                .explanation(buildExplanation(correctWord))
                 .build();
     }
 
+    private QuizType determineQuizType() {
+        return Math.random() < 0.5 ? QuizType.KANJI_TO_HIRAGANA : QuizType.HIRAGANA_TO_MEANING;
+    }
+
+    private void validateWrongAnswers(List<QuizWord> wrongWords) {
+        if (wrongWords.size() < WRONG_ANSWERS_COUNT) {
+            throw new ServiceException("500",
+                    String.format("誤答選択肢の生成に失敗しました（必要: %d個、実際: %d個）",
+                            WRONG_ANSWERS_COUNT, wrongWords.size()));
+        }
+    }
+
+    // クイズの内容（問題、選択肢、正解）を構築
+    private QuizContent buildQuizContent(QuizWord correctWord, List<QuizWord> wrongWords, QuizType quizType, String level) {
+        QuizContent content = new QuizContent();
+        content.choices = new ArrayList<>();
+
+        if (quizType == QuizType.KANJI_TO_HIRAGANA) {
+            // 漢字 → ひらがな
+            content.question = correctWord.getWord();
+            content.questionType = "この単語の読み方は？";
+            content.correctAnswer = correctWord.getHiragana();
+
+            content.choices.add(correctWord.getHiragana());
+            wrongWords.forEach(wrong -> content.choices.add(wrong.getHiragana()));
+        } else {
+            // 漢字 → 意味（レベル別に表示方式を変更）
+            JlptLevel currentLevel = JlptLevel.valueOf(level);
+
+            if (currentLevel == JlptLevel.N5 || currentLevel == JlptLevel.N4) {
+                content.question = String.format("%s（%s）",
+                        correctWord.getWord(),
+                        correctWord.getHiragana());
+            } else {
+                content.question = correctWord.getWord();
+            }
+
+            content.questionType = "この単語の意味は？";
+            content.correctAnswer = correctWord.getMeaning();
+
+            content.choices.add(correctWord.getMeaning());
+            wrongWords.forEach(wrong -> content.choices.add(wrong.getMeaning()));
+        }
+
+        return content;
+    }
+
+    // 解説文を生成
+    private String buildExplanation(QuizWord word) {
+        return String.format(
+                "「%s」は「%s」と読み、「%s」という意味です。",
+                word.getWord(),
+                word.getHiragana(),
+                word.getMeaning()
+        );
+    }
+
     /**
-     * 비슷한 길이의 오답 선택지를 가져옵니다.
-     * 정답과 ±2 글자 이내의 단어를 우선 선택하여 난이도를 높입니다.
+     * 似た長さの誤答選択肢を取得
+     * 正解と±2文字以内の単語を優先選択して難易度を高める
      */
     private List<QuizWord> getSimilarLengthWrongAnswers(QuizWord correctWord, String level, QuizType quizType) {
-        // 정답의 길이 계산
-        int targetLength = quizType == QuizType.KANJI_TO_HIRAGANA
-                ? correctWord.getHiragana().length()
-                : correctWord.getMeaning().length();
+        // 正解の長さを計算
+        int targetLength = calculateTargetLength(correctWord, quizType);
 
-        // 같은 레벨의 모든 단어 가져오기 (정답 제외)
+        // 同じレベルの全単語を取得（正解を除く）
         List<QuizWord> allWords = quizWordRepository.findBySourceAndSourceDetail(WordSource.JLPT, level)
                 .stream()
                 .filter(word -> !word.getId().equals(correctWord.getId()))
                 .collect(Collectors.toList());
 
-        // 우선순위별로 단어 분류
-        List<QuizWord> exactMatch = new ArrayList<>();      // 정확히 같은 길이
-        List<QuizWord> closeMatch = new ArrayList<>();      // ±1 글자
-        List<QuizWord> nearMatch = new ArrayList<>();       // ±2 글자
-        List<QuizWord> others = new ArrayList<>();          // 그 외
+        // 優先順位別に単語を分類
+        WordsByLength wordsByLength = categorizeWordsByLength(allWords, targetLength, quizType);
 
-        for (QuizWord word : allWords) {
-            int wordLength = quizType == QuizType.KANJI_TO_HIRAGANA
-                    ? word.getHiragana().length()
-                    : word.getMeaning().length();
+        // 優先順位に従って誤答を選択（3つ必要）
+        return selectWrongAnswers(wordsByLength);
+    }
 
+    /**
+     * 対象の長さを計算
+     *
+     * @param word 単語
+     * @param quizType クイズタイプ
+     * @return 文字数
+     */
+    private int calculateTargetLength(QuizWord word, QuizType quizType) {
+        return quizType == QuizType.KANJI_TO_HIRAGANA
+                ? word.getHiragana().length()
+                : word.getMeaning().length();
+    }
+
+    /**
+     * 単語を長さの差で分類
+     *
+     * @param words 単語リスト
+     * @param targetLength 目標の長さ
+     * @param quizType クイズタイプ
+     * @return 分類された単語
+     */
+    private WordsByLength categorizeWordsByLength(List<QuizWord> words, int targetLength, QuizType quizType) {
+        WordsByLength result = new WordsByLength();
+
+        for (QuizWord word : words) {
+            int wordLength = calculateTargetLength(word, quizType);
             int diff = Math.abs(wordLength - targetLength);
 
             if (diff == 0) {
-                exactMatch.add(word);
+                result.exactMatch.add(word);
             } else if (diff == 1) {
-                closeMatch.add(word);
+                result.closeMatch.add(word);
             } else if (diff == 2) {
-                nearMatch.add(word);
+                result.nearMatch.add(word);
             } else {
-                others.add(word);
+                result.others.add(word);
             }
         }
 
-        // 각 그룹을 섞기
-        Collections.shuffle(exactMatch);
-        Collections.shuffle(closeMatch);
-        Collections.shuffle(nearMatch);
-        Collections.shuffle(others);
+        // 各グループをシャッフル
+        Collections.shuffle(result.exactMatch);
+        Collections.shuffle(result.closeMatch);
+        Collections.shuffle(result.nearMatch);
+        Collections.shuffle(result.others);
 
-        // 우선순위에 따라 오답 선택 (3개 필요)
+        return result;
+    }
+
+    /**
+     * 優先順位に従って誤答を選択
+     *
+     * @param wordsByLength 長さ別に分類された単語
+     * @return 選択された誤答（最大3つ）
+     */
+    private List<QuizWord> selectWrongAnswers(WordsByLength wordsByLength) {
         List<QuizWord> wrongAnswers = new ArrayList<>();
 
-        // 1순위: 정확히 같은 길이
-        wrongAnswers.addAll(exactMatch.stream().limit(3).collect(Collectors.toList()));
-        if (wrongAnswers.size() >= 3) {
-            return wrongAnswers.subList(0, 3);
+        // 第1優先順位: 正確に同じ長さ
+        addWordsUpToLimit(wrongAnswers, wordsByLength.exactMatch, WRONG_ANSWERS_COUNT);
+        if (wrongAnswers.size() >= WRONG_ANSWERS_COUNT) {
+            return wrongAnswers.subList(0, WRONG_ANSWERS_COUNT);
         }
 
-        // 2순위: ±1 글자
-        wrongAnswers.addAll(closeMatch.stream().limit(3 - wrongAnswers.size()).collect(Collectors.toList()));
-        if (wrongAnswers.size() >= 3) {
-            return wrongAnswers.subList(0, 3);
+        // 第2優先順位: ±1文字
+        addWordsUpToLimit(wrongAnswers, wordsByLength.closeMatch, WRONG_ANSWERS_COUNT);
+        if (wrongAnswers.size() >= WRONG_ANSWERS_COUNT) {
+            return wrongAnswers.subList(0, WRONG_ANSWERS_COUNT);
         }
 
-        // 3순위: ±2 글자
-        wrongAnswers.addAll(nearMatch.stream().limit(3 - wrongAnswers.size()).collect(Collectors.toList()));
-        if (wrongAnswers.size() >= 3) {
-            return wrongAnswers.subList(0, 3);
+        // 第3優先順位: ±2文字
+        addWordsUpToLimit(wrongAnswers, wordsByLength.nearMatch, WRONG_ANSWERS_COUNT);
+        if (wrongAnswers.size() >= WRONG_ANSWERS_COUNT) {
+            return wrongAnswers.subList(0, WRONG_ANSWERS_COUNT);
         }
 
-        // 4순위: 나머지 (충분하지 않으면 여기서 채움)
-        wrongAnswers.addAll(others.stream().limit(3 - wrongAnswers.size()).collect(Collectors.toList()));
+        // 第4優先順位: 残り（不足する場合はここで補充）
+        addWordsUpToLimit(wrongAnswers, wordsByLength.others, WRONG_ANSWERS_COUNT);
 
         return wrongAnswers;
     }
 
     /**
-     * 퀴즈 타입 Enum
+     * リストから指定数まで単語を追加
+     *
+     * @param target 追加先リスト
+     * @param source 追加元リスト
+     * @param limit 最大数
+     */
+    private void addWordsUpToLimit(List<QuizWord> target, List<QuizWord> source, int limit) {
+        int remaining = limit - target.size();
+        target.addAll(source.stream().limit(remaining).collect(Collectors.toList()));
+    }
+
+    /**
+     * クイズタイプ Enum
      */
     private enum QuizType {
-        KANJI_TO_HIRAGANA,  // 한자 → 히라가나
-        HIRAGANA_TO_MEANING // 히라가나 → 뜻
+        KANJI_TO_HIRAGANA,  // 漢字 → ひらがな
+        HIRAGANA_TO_MEANING // ひらがな → 意味
+    }
+
+    /**
+     * クイズの内容を保持する内部クラス
+     */
+    private static class QuizContent {
+        String question;
+        String questionType;
+        String correctAnswer;
+        List<String> choices;
+    }
+
+    /**
+     * 長さ別に分類された単語を保持する内部クラス
+     */
+    private static class WordsByLength {
+        List<QuizWord> exactMatch = new ArrayList<>();  // 正確に同じ長さ
+        List<QuizWord> closeMatch = new ArrayList<>();  // ±1文字
+        List<QuizWord> nearMatch = new ArrayList<>();   // ±2文字
+        List<QuizWord> others = new ArrayList<>();      // その他
     }
 }
