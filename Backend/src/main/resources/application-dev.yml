@@ -1,20 +1,24 @@
 spring:
-  # H2 Database Setting
+  # PostgreSQL Database Setting
   datasource:
-    driver-class-name: org.h2.Driver
-    url: jdbc:h2:./db_dev;MODE=MySQL
-    username: sa
-    password:
-
-  # H2 Console Setting
-  h2:
-    console:
-      enabled: true           # H2 Console available
-      path: /h2-console       # H2 Console address
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/calkensyu
+    username: caluser
+    password: calpass123
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
 
   # JPA Setting
   jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    properties:
+      hibernate:
+        default_schema: public
+        jdbc:
+          lob:
+            non_contextual_creation: true
 
 # JWT Setting
 jwt:
