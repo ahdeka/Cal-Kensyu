@@ -12,6 +12,8 @@ spring:
 
   # JPA Setting
   jpa:
+    hibernate:
+      ddl-auto: update
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     properties:
       hibernate:
@@ -23,5 +25,5 @@ spring:
 # JWT Setting
 jwt:
   secret: your-secret-key-must-be-at-least-256-bits-long-for-HS256-algorithm-security
-  access-token-expiration: 1800000    # 30 minute
-  refresh-token-expiration: 604800000 # 7 days
+  access-token-expiration: 30m     # 30 minutes
+  refresh-token-expiration: 7d  # 7 days

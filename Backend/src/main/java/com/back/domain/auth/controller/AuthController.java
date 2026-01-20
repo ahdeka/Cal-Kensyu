@@ -9,6 +9,7 @@ import com.back.domain.user.repository.UserRepository;
 import com.back.domain.user.service.UserService;
 import com.back.global.exception.ServiceException;
 import com.back.global.rsData.RsData;
+import com.back.global.security.jwt.JwtProperties;
 import com.back.global.security.jwt.JwtTokenProvider;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
@@ -31,12 +32,11 @@ public class AuthController {
 
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
+    private final JwtProperties jwtProperties;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserService userService;
 
-    private static final int ACCESS_TOKEN_COOKIE_MAX_AGE = 60 * 60;
-    private static final int REFRESH_TOKEN_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
     private static final String ACCESS_TOKEN_NAME = "accessToken";
     private static final String REFRESH_TOKEN_NAME = "refreshToken";
 
@@ -187,12 +187,23 @@ public class AuthController {
     }
 
     private void addTokenCookies(HttpServletResponse response, String accessToken, String refreshToken) {
-        response.addCookie(createCookie(ACCESS_TOKEN_NAME, accessToken, ACCESS_TOKEN_COOKIE_MAX_AGE));
-        response.addCookie(createCookie(REFRESH_TOKEN_NAME, refreshToken, REFRESH_TOKEN_COOKIE_MAX_AGE));
+        response.addCookie(createCookie(
+                ACCESS_TOKEN_NAME,
+                accessToken,
+                jwtProperties.getAccessTokenCookieMaxAge()
+        ));
+        response.addCookie(createCookie(
+                REFRESH_TOKEN_NAME,
+                refreshToken,
+                jwtProperties.getRefreshTokenCookieMaxAge()
+        ));
     }
 
     private void addAccessTokenCookie(HttpServletResponse response, String accessToken) {
-        response.addCookie(createCookie(ACCESS_TOKEN_NAME, accessToken, ACCESS_TOKEN_COOKIE_MAX_AGE));
+        response.addCookie(createCookie(
+                ACCESS_TOKEN_NAME,
+                accessToken,
+                jwtProperties.getAccessTokenCookieMaxAge()));
     }
 
     private void clearTokenCookies(HttpServletResponse response) {
