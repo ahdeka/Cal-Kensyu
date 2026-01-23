@@ -1,10 +1,10 @@
-// ログインリクエスト
+// Login request
 export interface LoginRequest {
   username: string;
   password: string;
 }
 
-// 会員登録リクエスト
+// Signup request
 export interface SignupRequest {
   username: string;
   password: string;
@@ -13,14 +13,14 @@ export interface SignupRequest {
   nickname: string;
 }
 
-// APIレスポンス
+// API response
 export interface ApiResponse<T = any> {
   resultCode: string;
   msg: string;
   data?: T;
 }
 
-// ユーザー情報
+// User information
 export interface User {
   id: number;
   username: string;

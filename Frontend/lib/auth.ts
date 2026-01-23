@@ -1,33 +1,33 @@
 import { api } from './api';
 import { LoginRequest, SignupRequest, ApiResponse } from '@/types';
 
-// 認証サービス
+// Authentication Service
 export const authService = {
-  // ログイン
+  // Login
   async login(data: LoginRequest): Promise<ApiResponse> {
     const response = await api.post<ApiResponse>('/api/auth/login', data);
     return response.data;
   },
 
-  // 会員登録
+  // Signup
   async signup(data: SignupRequest): Promise<ApiResponse> {
     const response = await api.post<ApiResponse>('/api/auth/signup', data);
     return response.data;
   },
 
-  // ログアウト
+  // Logout
   async logout(): Promise<ApiResponse> {
     const response = await api.post<ApiResponse>('/api/auth/logout');
     return response.data;
   },
 
-  // トークンリフレッシュ
+  // Refresh token
   async refresh(): Promise<ApiResponse> {
     const response = await api.post<ApiResponse>('/api/auth/refresh');
     return response.data;
   },
 
-  // 現在のユーザー情報取得
+  // Get current user info
   async getCurrentUser(): Promise<ApiResponse> {
     try {
       const response = await api.get<ApiResponse>('/api/auth/me');
@@ -35,7 +35,7 @@ export const authService = {
     } catch (error: any) {
       return {
         resultCode: '401',
-        msg: '未認証',
+        msg: 'Unauthorized',
         data: null
       };
     }

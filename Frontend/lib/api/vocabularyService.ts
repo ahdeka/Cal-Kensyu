@@ -14,7 +14,7 @@ interface ApiResponse<T> {
 }
 
 export const vocabularyService = {
-  // 단어 등록
+  // Register vocabulary
   createVocabulary: async (
     data: VocabularyCreateRequest
   ): Promise<VocabularyResponse> => {
@@ -25,7 +25,7 @@ export const vocabularyService = {
     return response.data.data;
   },
 
-  // 내 모든 단어 조회
+  // Get all my vocabularies
   getMyVocabularies: async (): Promise<VocabularyListResponse[]> => {
     const response = await api.get<ApiResponse<VocabularyListResponse[]>>(
       '/api/vocabularies'
@@ -33,7 +33,7 @@ export const vocabularyService = {
     return response.data.data;
   },
 
-  // 학습 상태별 단어 조회
+  // Get vocabularies by study status
   getVocabulariesByStatus: async (
     status: StudyStatus
   ): Promise<VocabularyListResponse[]> => {
@@ -43,7 +43,7 @@ export const vocabularyService = {
     return response.data.data;
   },
 
-  // 단어 검색
+  // Search vocabularies
   searchVocabularies: async (
     keyword: string
   ): Promise<VocabularyListResponse[]> => {
@@ -56,7 +56,7 @@ export const vocabularyService = {
     return response.data.data;
   },
 
-  // 단어 상세 조회
+  // Get vocabulary details
   getVocabulary: async (id: number): Promise<VocabularyResponse> => {
     const response = await api.get<ApiResponse<VocabularyResponse>>(
       `/api/vocabularies/${id}`
@@ -64,7 +64,7 @@ export const vocabularyService = {
     return response.data.data;
   },
 
-  // 단어 수정
+  // Update vocabulary
   updateVocabulary: async (
     id: number,
     data: VocabularyUpdateRequest
@@ -76,23 +76,23 @@ export const vocabularyService = {
     return response.data.data;
   },
 
-  // 단어 삭제
+  // Delete vocabulary
   deleteVocabulary: async (id: number): Promise<void> => {
     await api.delete(`/api/vocabularies/${id}`);
   },
 
-  // 학습 상태만 변경
-    updateStudyStatus: async (
+  // Update study status only
+  updateStudyStatus: async (
     id: number,
     status: StudyStatus
-    ): Promise<VocabularyResponse> => {
+  ): Promise<VocabularyResponse> => {
     const response = await api.patch<ApiResponse<VocabularyResponse>>(
-        `/api/vocabularies/${id}/status`,
-        null,
-        {
+      `/api/vocabularies/${id}/status`,
+      null,
+      {
         params: { studyStatus: status },
-        }
+      }
     );
     return response.data.data;
-    },
+  },
 };

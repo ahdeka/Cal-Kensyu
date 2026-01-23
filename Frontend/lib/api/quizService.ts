@@ -8,7 +8,7 @@ interface ApiResponse<T> {
 }
 
 export const quizService = {
-  // JLPT 레벨별 퀴즈 가져오기
+  // Get quiz by JLPT level
   getQuizByLevel: async (level: JlptLevel, count: number = 10): Promise<QuizQuestion[]> => {
     try {
       const response = await api.get<ApiResponse<QuizQuestion[]>>(
@@ -18,7 +18,6 @@ export const quizService = {
         }
       );
       
-      // ✅ response.data.data로 접근
       if (response.data && response.data.data) {
         return response.data.data;
       }

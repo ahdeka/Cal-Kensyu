@@ -1,15 +1,15 @@
 import axios from 'axios';
 
-// APIクライアントの設定
+// API client configuration
 export const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080',
-  withCredentials: true, // クッキーを含める
+  withCredentials: true, // Include cookies
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// リフレッシュ 重複要請防止
+// Prevent duplicate refresh requests
 let isRefreshing = false;
 let failedQueue: any[] = [];
 
@@ -24,7 +24,7 @@ const processQueue = (error: any, token: string | null = null) => {
   failedQueue = [];
 };
 
-// レスポンスインターセプター（エラー処理）
+// Response interceptor (error handling)
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -62,12 +62,12 @@ api.interceptors.response.use(
         await api.post('/api/auth/refresh');
         processQueue(null, null);
         isRefreshing = false;
-        // リフレッシュ成功後、元のリクエストを再試行
+        // Retry original request after successful refresh
         return api.request(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
         isRefreshing = false;
-        // リフレッシュ失敗の場合、ログインページへリダイレクト
+        // Redirect to login page on refresh failure
         if (typeof window !== 'undefined') {
           window.location.href = '/login';
         }

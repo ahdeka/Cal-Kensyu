@@ -8,17 +8,17 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-public interface QuizWordRepository extends JpaRepository<QuizWord, Long> {
+public interface    QuizWordRepository extends JpaRepository<QuizWord, Long> {
 
     // JLPT 레벨별 조회
     List<QuizWord> findBySourceAndSourceDetail(WordSource source, String sourceDetail);
 
     // JLPT 레벨별 랜덤 조회
-    @Query(value = "SELECT * FROM quiz_words WHERE source = :source AND source_detail = :level ORDER BY RAND() LIMIT :limit", nativeQuery = true)
+    @Query(value = "SELECT * FROM quiz_words WHERE source = :source AND source_detail = :level ORDER BY RANDOM() LIMIT :limit", nativeQuery = true)
     List<QuizWord> findRandomByJlptLevel(@Param("source") String source, @Param("level") String level, @Param("limit") int limit);
 
     // 특정 단어 제외하고 랜덤 조회 (오답 선택지용)
-    @Query(value = "SELECT * FROM quiz_words WHERE source = :source AND source_detail = :level AND id != :excludeId ORDER BY RAND() LIMIT :limit", nativeQuery = true)
+    @Query(value = "SELECT * FROM quiz_words WHERE source = :source AND source_detail = :level AND id != :excludeId ORDER BY RANDOM() LIMIT :limit", nativeQuery = true)
     List<QuizWord> findRandomByJlptLevelExcluding(@Param("source") String source, @Param("level") String level, @Param("excludeId") Long excludeId, @Param("limit") int limit);
 
     // 출처별 개수 조회

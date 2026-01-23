@@ -9,30 +9,30 @@ import {
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 class DiaryService {
-  // 일기 작성
+  // Create diary
   async createDiary(data: DiaryCreateRequest): Promise<DiaryResponse> {
     const response = await fetch(`${API_BASE_URL}/api/diary`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      credentials: 'include', // 쿠키 포함
+      credentials: 'include',
       body: JSON.stringify(data),
     });
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.msg || '日記の作成に失敗しました');
+      throw new Error(error.msg || 'Failed to create diary');
     }
 
     const result: ApiResponse<DiaryResponse> = await response.json();
     if (!result.data) {
-      throw new Error('データがありません');
+      throw new Error('No data available');
     }
     return result.data;
   }
 
-  // 공개 일기 목록 조회
+  // Get public diaries
   async getPublicDiaries(): Promise<DiaryListResponse[]> {
     const response = await fetch(`${API_BASE_URL}/api/diary/public`, {
       method: 'GET',
@@ -40,14 +40,14 @@ class DiaryService {
     });
 
     if (!response.ok) {
-      throw new Error('公開日記の取得に失敗しました');
+      throw new Error('Failed to retrieve public diaries');
     }
 
     const result: ApiResponse<DiaryListResponse[]> = await response.json();
     return result.data || [];
   }
 
-  // 내 일기 목록 조회
+  // Get my diaries
   async getMyDiaries(): Promise<DiaryListResponse[]> {
     const response = await fetch(`${API_BASE_URL}/api/diary/my`, {
       method: 'GET',
@@ -55,14 +55,14 @@ class DiaryService {
     });
 
     if (!response.ok) {
-      throw new Error('日記の取得に失敗しました');
+      throw new Error('Failed to retrieve diaries');
     }
 
     const result: ApiResponse<DiaryListResponse[]> = await response.json();
     return result.data || [];
   }
 
-  // 일기 상세 조회
+  // Get diary detail
   async getDiary(id: number): Promise<DiaryResponse> {
     const response = await fetch(`${API_BASE_URL}/api/diary/${id}`, {
       method: 'GET',
@@ -71,17 +71,17 @@ class DiaryService {
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.msg || '日記の取得に失敗しました');
+      throw new Error(error.msg || 'Failed to retrieve diary');
     }
 
     const result: ApiResponse<DiaryResponse> = await response.json();
     if (!result.data) {
-      throw new Error('データがありません');
+      throw new Error('No data available');
     }
     return result.data;
   }
 
-  // 일기 수정
+  // Update diary
   async updateDiary(
     id: number,
     data: DiaryUpdateRequest
@@ -97,17 +97,17 @@ class DiaryService {
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.msg || '日記の修正に失敗しました');
+      throw new Error(error.msg || 'Failed to update diary');
     }
 
     const result: ApiResponse<DiaryResponse> = await response.json();
     if (!result.data) {
-      throw new Error('データがありません');
+      throw new Error('No data available');
     }
     return result.data;
   }
 
-  // 일기 삭제
+  // Delete diary
   async deleteDiary(id: number): Promise<void> {
     const response = await fetch(`${API_BASE_URL}/api/diary/${id}`, {
       method: 'DELETE',
@@ -116,7 +116,7 @@ class DiaryService {
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.msg || '日記の削除に失敗しました');
+      throw new Error(error.msg || 'Failed to delete diary');
     }
   }
 }
