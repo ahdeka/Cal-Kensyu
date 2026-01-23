@@ -30,7 +30,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<RsData<Void>> handle(NoSuchElementException ex) {
         log.error("NoSuchElementException: {}", ex.getMessage());
         return new ResponseEntity<>(
-                new RsData<>("404-1", "該当するデータが存在しません。"),
+                new RsData<>("404", "The requested data does not exist."),
                 NOT_FOUND
         );
     }
@@ -39,7 +39,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<RsData<Void>> handle(UsernameNotFoundException ex) {
         log.error("UsernameNotFoundException: {}", ex.getMessage());
         return new ResponseEntity<>(
-                new RsData<>("404-2", "ユーザーが見つかりません。"),
+                new RsData<>("404", "User not found."),
                 NOT_FOUND
         );
     }
@@ -48,7 +48,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<RsData<Void>> handle(BadCredentialsException ex) {
         log.error("BadCredentialsException: {}", ex.getMessage());
         return new ResponseEntity<>(
-                new RsData<>("401-1", "IDまたはパスワードが正しくありません。"),
+                new RsData<>("401", "Incorrect username or password."),
                 UNAUTHORIZED
         );
     }
@@ -74,7 +74,7 @@ public class GlobalExceptionHandler {
 
         log.error("ConstraintViolationException: {}", message);
         return new ResponseEntity<>(
-                new RsData<>("400-1", message),
+                new RsData<>("400", message),
                 BAD_REQUEST
         );
     }
@@ -92,7 +92,7 @@ public class GlobalExceptionHandler {
 
         log.error("MethodArgumentNotValidException: {}", message);
         return new ResponseEntity<>(
-                new RsData<>("400-1", message),
+                new RsData<>("400", message),
                 BAD_REQUEST
         );
     }
@@ -101,7 +101,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<RsData<Void>> handle(HttpMessageNotReadableException ex) {
         log.error("HttpMessageNotReadableException: {}", ex.getMessage());
         return new ResponseEntity<>(
-                new RsData<>("400-1", "リクエストボディが正しくありません。"),
+                new RsData<>("400", "Request body is not valid."),
                 BAD_REQUEST
         );
     }
@@ -111,7 +111,7 @@ public class GlobalExceptionHandler {
         log.error("MissingRequestHeaderException: {}", ex.getMessage());
         return new ResponseEntity<>(
                 new RsData<>(
-                        "400-1",
+                        "400",
                         "%s-%s-%s".formatted(
                                 ex.getHeaderName(),
                                 "NotBlank",
@@ -141,7 +141,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<RsData<Void>> handle(Exception ex) {
         log.error("Unexpected exception: ", ex);
         return new ResponseEntity<>(
-                new RsData<>("500-1", "サーバー内部エラーが発生しました。"),
+                new RsData<>("500", "An internal server error occurred."),
                 INTERNAL_SERVER_ERROR
         );
     }

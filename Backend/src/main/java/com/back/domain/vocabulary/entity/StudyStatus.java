@@ -4,9 +4,9 @@ import lombok.Getter;
 
 @Getter
 public enum StudyStatus {
-    NOT_STUDIED("学習前"),
-    STUDYING("学習中"),
-    COMPLETED("学習完了");
+    NOT_STUDIED("Not Studied"),
+    STUDYING("Studying"),
+    COMPLETED("Completed");
 
     private final String displayName;
 

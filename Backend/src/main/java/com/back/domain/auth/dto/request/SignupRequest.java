@@ -2,26 +2,25 @@ package com.back.domain.auth.dto.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 
 public record SignupRequest(
-        @NotBlank(message = "ユーザー名は必須です")
+        @NotBlank(message = "Username is required")
         String username,
 
-        @NotBlank(message = "パスワードは必須です")
+        @NotBlank(message = "Password is required")
         String password,
 
-        @NotBlank(message = "パスワード確認は必須です")
+        @NotBlank(message = "Password confirmation is required")
         String passwordConfirm,
 
-        @NotBlank(message = "メールは必須です")
-        @Email(message = "有効なメールアドレスを入力してください")
+        @NotBlank(message = "Email is required")
+        @Email(message = "Please enter a valid email address")
         String email,
 
-        @NotBlank(message = "ニックネームは必須です")
+        @NotBlank(message = "Nickname is required")
         String nickname
 ) {
-    // パスワード一致確認メソッド
+    // Password matching verification method
     public boolean isPasswordMatching() {
         return password != null && password.equals(passwordConfirm);
     }

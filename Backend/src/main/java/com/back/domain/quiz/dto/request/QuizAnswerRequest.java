@@ -4,10 +4,10 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 public record QuizAnswerRequest(
-        @NotNull(message = "問題IDを入力してください")
+        @NotNull(message = "Question ID is required")
         Long questionId,
 
-        @NotBlank(message = "回答を入力してください")
+        @NotBlank(message = "Answer is required")
         String answer
 ) {
 }

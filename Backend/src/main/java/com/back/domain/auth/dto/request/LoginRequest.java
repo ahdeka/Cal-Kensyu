@@ -3,10 +3,10 @@ package com.back.domain.auth.dto.request;
 import jakarta.validation.constraints.NotBlank;
 
 public record LoginRequest(
-        @NotBlank(message = "ユーザー名は必須です")
+        @NotBlank(message = "Username is required")
         String username,
 
-        @NotBlank(message = "パスワードは必須です")
+        @NotBlank(message = "Password is required")
         String password
 ) {
 }

@@ -17,7 +17,7 @@ public record RsData<T>(
         this(resultCode, Integer.parseInt(resultCode.split("-", 2)[0]), msg, data);
     }
 
-    // 성공 응답 헬퍼 메서드
+    // Success response helper methods
     public static <T> RsData<T> of(String resultCode, String msg, T data) {
         return new RsData<>(resultCode, msg, data);
     }

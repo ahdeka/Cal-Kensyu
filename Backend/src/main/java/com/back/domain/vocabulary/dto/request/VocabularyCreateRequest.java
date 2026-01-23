@@ -4,22 +4,22 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public record VocabularyCreateRequest(
-        @NotBlank(message = "単語を入力してください")
-        @Size(max = 100, message = "単語は100文字以内で入力してください")
+        @NotBlank(message = "Word is required")
+        @Size(max = 100, message = "Word must be within 100 characters")
         String word,
 
-        @NotBlank(message = "ひらがなを入力してください")
-        @Size(max = 100, message = "ひらがなは100文字以内で入力してください")
+        @NotBlank(message = "Hiragana is required")
+        @Size(max = 100, message = "Hiragana must be within 100 characters")
         String hiragana,
 
-        @NotBlank(message = "意味を入力してください")
-        @Size(max = 500, message = "意味は500文字以内で入力してください")
+        @NotBlank(message = "Meaning is required")
+        @Size(max = 500, message = "Meaning must be within 500 characters")
         String meaning,
 
-        @Size(max = 1000, message = "例文は1000文字以内で入力してください")
+        @Size(max = 1000, message = "Example sentence must be within 1000 characters")
         String exampleSentence,
 
-        @Size(max = 1000, message = "例文翻訳は1000文字以内で入力してください")
+        @Size(max = 1000, message = "Example translation must be within 1000 characters")
         String exampleTranslation
 ) {
 }

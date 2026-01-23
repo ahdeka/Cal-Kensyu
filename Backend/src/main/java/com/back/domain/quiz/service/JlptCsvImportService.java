@@ -31,10 +31,10 @@ public class JlptCsvImportService {
         List<String[]> csvData = parseCsv(file);
 
         if (csvData.isEmpty()) {
-            throw new ServiceException("400", "CSVファイルが空です。");
+            throw new ServiceException("400", "CSV file is empty.");
         }
 
-        // 헤더 제거 (첫 줄이 헤더인 경우)
+        // Remove header (if first row is header)
         String[] header = csvData.get(0);
         boolean hasHeader = isHeader(header);
         if (hasHeader) {
@@ -48,9 +48,9 @@ public class JlptCsvImportService {
             String[] row = csvData.get(i);
 
             try {
-                // CSV 형식: expression, reading, meaning (예상)
+                // CSV format: expression, reading, meaning (expected)
                 if (row.length < 2) {
-                    log.warn("行 {} をスキップ: カラム数不足 ({}個)", i + 1, row.length);
+                    log.warn("Skipping row {}: Insufficient columns ({})", i + 1, row.length);
                     skippedCount++;
                     continue;
                 }
@@ -60,12 +60,12 @@ public class JlptCsvImportService {
                 String meaning = row.length > 2 ? row[2].trim() : "";
 
                 if (word.isEmpty() || hiragana.isEmpty()) {
-                    log.warn("行 {} をスキップ: 必須フィールドが空です", i + 1);
+                    log.warn("Skipping row {}: Required fields are empty", i + 1);
                     skippedCount++;
                     continue;
                 }
 
-                // 중복 체크
+                // Check for duplicates
                 boolean exists = quizWordRepository.existsBySourceAndSourceDetailAndWordAndHiragana(
                         WordSource.JLPT,
                         jlptLevel.name(),
@@ -74,7 +74,7 @@ public class JlptCsvImportService {
                 );
 
                 if (exists) {
-                    log.debug("行 {} をスキップ: 既に存在する単語 - {}", i + 1, word);
+                    log.debug("Skipping row {}: Word already exists - {}", i + 1, word);
                     skippedCount++;
                     continue;
                 }
@@ -90,7 +90,7 @@ public class JlptCsvImportService {
                 quizWords.add(quizWord);
 
             } catch (Exception e) {
-                log.error("行 {} の処理中にエラー: {}", i + 1, e.getMessage());
+                log.error("Error processing row {}: {}", i + 1, e.getMessage());
                 skippedCount++;
             }
         }
@@ -98,7 +98,7 @@ public class JlptCsvImportService {
         // Batch Insert
         if (!quizWords.isEmpty()) {
             quizWordRepository.saveAll(quizWords);
-            log.info("JLPT {} 単語 {}個の登録完了 (スキップ: {}個)",
+            log.info("JLPT {} word registration completed: {} words (skipped: {})",
                     jlptLevel.name(), quizWords.size(), skippedCount);
         }
 
@@ -113,7 +113,7 @@ public class JlptCsvImportService {
     }
 
     private boolean isHeader(String[] row) {
-        // 헤더 판단 로직
+        // Header detection logic
         if (row.length < 2) return false;
 
         String first = row[0].toLowerCase();

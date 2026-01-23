@@ -38,8 +38,8 @@ public class DevInitData {
     private final UserRepository userRepository;
     private final DiaryRepository diaryRepository;
     private final PasswordEncoder passwordEncoder;
-    private final VocabularyRepository  vocabularyRepository;
-    private final QuizWordRepository  quizWordRepository;
+    private final VocabularyRepository vocabularyRepository;
+    private final QuizWordRepository quizWordRepository;
     private final JlptCsvImportService jlptCsvImportService;
 
     @Bean
@@ -55,31 +55,31 @@ public class DevInitData {
     @Transactional
     public void createQuizWords() {
         if (quizWordRepository.count() > 0) {
-            log.info("Quiz単語既に存在: スキップ");
+            log.info("Quiz words already exist: skipping");
             return;
         }
 
-        // CSV에서 JLPT 단어 로드 시도
+        // Attempt to load JLPT words from CSV
         try {
             loadJlptWordsFromCsv();
         } catch (Exception e) {
-            log.warn("JLPT単語のCSVロードに失敗しました。", e);
+            log.warn("Failed to load JLPT words from CSV.", e);
         }
     }
 
     @Transactional
     public void createDiaries() {
-        // 사용자 조회
+        // Retrieve users
         User user1 = userRepository.findByUsername("user1").orElse(null);
         User user2 = userRepository.findByUsername("user2").orElse(null);
         User user3 = userRepository.findByUsername("user3").orElse(null);
 
         if (user1 == null || user2 == null || user3 == null) {
-            log.warn("日記生成スキップ: ユーザーが存在しません");
+            log.warn("Skipping diary generation: users do not exist");
             return;
         }
 
-        // User1의 일기 4개 (공개 2개, 비공개 2개)
+        // User1's diaries (2 public, 2 private)
         createDiary(user1, LocalDate.now().minusDays(1),
                 "初めての日本語日記",
                 "今日から日本語の勉強を始めました。最初は難しいですが、毎日少しずつ頑張ります。ひらがなとカタカナを覚えるのが目標です。",
@@ -100,7 +100,7 @@ public class DevInitData {
                 "週末に日本のドラマを見る予定です。字幕なしで見るのはまだ難しいですが、挑戦してみます。",
                 false);
 
-        // User2의 일기 3개 (공개 2개, 비공개 1개)
+        // User2's diaries (2 public, 1 private)
         createDiary(user2, LocalDate.now().minusDays(2),
                 "日本料理を作った",
                 "今日、初めて日本料理を作りました。簡単なお味噌汁と卵焼きです。美味しくできて嬉しかったです。次は肉じゃがに挑戦したいです。",
@@ -116,7 +116,7 @@ public class DevInitData {
                 "漢字を覚えるのが本当に大変です。同じ漢字でも読み方がたくさんあって混乱します。毎日10個ずつ覚える練習をしています。",
                 false);
 
-        // User3의 일기 3개 (공개 3개)
+        // User3's diaries (3 public)
         createDiary(user3, LocalDate.now(),
                 "今日の勉強",
                 "今日は動詞の活用を勉強しました。て形とた形の作り方を練習しました。少しずつ慣れてきた気がします。明日も頑張ります！",
@@ -132,16 +132,16 @@ public class DevInitData {
                 "今日、日本人の友達と日本語だけで会話しました。まだ完璧ではありませんが、楽しくコミュニケーションできました。もっと上手になりたいです。",
                 true);
 
-        log.info("サンプル日記生成完了: 10個 (user1: 4個, user2: 3個, user3: 3個)");
+        log.info("Sample diary generation completed: 10 diaries (user1: 4, user2: 3, user3: 3)");
     }
 
     @Transactional
     public void createUsers() {
 
-        // 1. 管理者アカウント 1個生成
+        // 1. Create 1 admin account
         createUser("admin", "admin123!", "admin@nihongo.com", "管理者", Role.ADMIN);
 
-        // 2. 一般ユーザーアカウント 5個生成
+        // 2. Create 5 regular user accounts
         for (int i = 1; i <= 5; i++) {
             String username = String.format("user%d", i);
             String email = String.format("user%d@test.com", i);
@@ -150,21 +150,21 @@ public class DevInitData {
             createUser(username, "user123!", email, nickname, Role.USER);
         }
 
-        log.info("総生成アカウント: 6個 (管理者 1個、一般ユーザー 5個)");
+        log.info("Total accounts created: 6 (1 admin, 5 regular users)");
     }
 
     @Transactional
     public void createVocabularies() {
-        // 사용자 조회
+        // Retrieve user
         User user1 = userRepository.findByUsername("user1").orElse(null);
 
         if (user1 == null) {
-            log.warn("単語帳生成スキップ: ユーザーが存在しません");
+            log.warn("Skipping vocabulary generation: user does not exist");
             return;
         }
 
         createVocabulary(user1, "隣人", "りんじん", "이웃, 인인",
-                "隣人の迷惑にならないように気をつけましょう。。",
+                "隣人の迷惑にならないように気をつけましょう。",
                 "이웃에게 폐가 되지 않도록 조심합시다.",
                 StudyStatus.COMPLETED);
 
@@ -193,20 +193,20 @@ public class DevInitData {
                 "새로운 것에 도전합니다.",
                 StudyStatus.NOT_STUDIED);
 
-        log.info("単語帳テストデータ生成完了");
+        log.info("Vocabulary test data generation completed");
     }
 
     private void createUser(String username, String password, String email, String nickname, Role role) {
-        // 既に存在するアカウントはスキップ
+        // Skip if account already exists
         if (userRepository.existsByUsername(username)) {
-            log.debug("アカウント既に存在 ({}): スキップ", username);
+            log.debug("Account already exists ({}): skipping", username);
             return;
         }
 
-        // パスワード暗号化
+        // Encode password
         String encodedPassword = passwordEncoder.encode(password);
 
-        // User エンティティ生成
+        // Create User entity
         User user = User.builder()
                 .username(username)
                 .password(encodedPassword)
@@ -215,15 +215,15 @@ public class DevInitData {
                 .role(role)
                 .build();
 
-        // 保存
+        // Save
         userRepository.save(user);
-        log.info("ユーザー生成: {} ({})", username, nickname);
+        log.info("User created: {} ({})", username, nickname);
     }
 
     private void createDiary(User user, LocalDate diaryDate, String title, String content, boolean isPublic) {
-        // 이미 존재하는 일기는 스킵
+        // Skip if diary already exists
         if (diaryRepository.findByUserAndDiaryDate(user, diaryDate).isPresent()) {
-            log.debug("日記既に存在 (ユーザー: {}, 日付: {}): スキップ", user.getUsername(), diaryDate);
+            log.debug("Diary already exists (user: {}, date: {}): skipping", user.getUsername(), diaryDate);
             return;
         }
 
@@ -236,7 +236,7 @@ public class DevInitData {
                 .build();
 
         diaryRepository.save(diary);
-        log.debug("日記生成: {} - {}", user.getUsername(), title);
+        log.debug("Diary created: {} - {}", user.getUsername(), title);
     }
 
     private void createVocabulary(User user, String word, String hiragana, String meaning,
@@ -256,7 +256,7 @@ public class DevInitData {
     }
 
     private void loadJlptWordsFromCsv() {
-        log.info("JLPT 単語データをCSVから読み込んでいます...");
+        log.info("Loading JLPT word data from CSV...");
 
         int totalLoaded = 0;
 
@@ -266,7 +266,7 @@ public class DevInitData {
                 ClassPathResource resource = new ClassPathResource("data/jlpt/" + filename);
 
                 if (!resource.exists()) {
-                    log.warn("{} ファイルが見つかりません: {}", level.name(), filename);
+                    log.warn("{} file not found: {}", level.name(), filename);
                     continue;
                 }
 
@@ -274,19 +274,19 @@ public class DevInitData {
                 int count = jlptCsvImportService.importJlptCsv(multipartFile, level);
                 totalLoaded += count;
 
-                log.info("{} 単語 {}個を登録しました。", level.name(), count);
+                log.info("{} words registered: {}", level.name(), count);
 
             } catch (Exception e) {
-                log.error("{} データの読み込み中にエラー: {}", level.name(), e.getMessage());
+                log.error("Error loading {} data: {}", level.name(), e.getMessage());
             }
         }
 
         if (totalLoaded == 0) {
-            throw new RuntimeException("CSVファイルから単語を読み込めませんでした");
+            throw new RuntimeException("Failed to load words from CSV files");
         }
 
         long totalCount = quizWordRepository.countBySource(WordSource.JLPT);
-        log.info("JLPT 単語データの読み込み完了。総単語数: {}", totalCount);
+        log.info("JLPT word data loading completed. Total words: {}", totalCount);
     }
 
     private MultipartFile convertToMultipartFile(ClassPathResource resource, String filename) throws IOException {

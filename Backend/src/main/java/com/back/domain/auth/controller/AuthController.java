@@ -11,6 +11,7 @@ import com.back.global.exception.ServiceException;
 import com.back.global.rsData.RsData;
 import com.back.global.security.jwt.JwtProperties;
 import com.back.global.security.jwt.JwtTokenProvider;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -28,6 +29,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
+@Tag(name = "Auth", description = "Authentication API")
 public class AuthController {
 
     private final AuthenticationManager authenticationManager;
@@ -55,16 +57,16 @@ public class AuthController {
         String accessToken = jwtTokenProvider.createAccessToken(request.username());
         String refreshToken = jwtTokenProvider.createRefreshToken(request.username());
 
-        // DBにrefreshTokenを保存
+        // Save refresh token to DB
         User user = userService.getUserByUsername(request.username());
         user.updateRefreshToken(refreshToken);
         userRepository.save(user);
 
-        // Cookieに保存
+        // Save to cookie
         addTokenCookies(response,  accessToken, refreshToken);
 
         return ResponseEntity.ok(
-                RsData.of("200", "ログイン成功")
+                RsData.of("200", "Login successful")
         );
     }
 
@@ -73,7 +75,7 @@ public class AuthController {
             @CookieValue(name = REFRESH_TOKEN_NAME, required = false) String refreshToken,
             HttpServletResponse response) {
 
-        // DBからrefreshTokenを削除
+        // Delete refresh token from DB
         if (refreshToken != null && jwtTokenProvider.validateToken(refreshToken)) {
             String username = jwtTokenProvider.getUsername(refreshToken);
             userRepository.findByUsername(username).ifPresent(user -> {
@@ -82,11 +84,11 @@ public class AuthController {
             });
         }
 
-        // Cookieを削除
+        // Clear cookies
         clearTokenCookies(response);
 
         return ResponseEntity.ok(
-                RsData.of("200", "ログアウト成功")
+                RsData.of("200", "Logout successful")
         );
     }
 
@@ -101,15 +103,15 @@ public class AuthController {
         User user = userService.getUserByUsername(username);
 
         if (!refreshToken.equals(user.getRefreshToken())) {
-            throw new ServiceException("401", "トークンが一致しません");
+            throw new ServiceException("401", "Token does not match");
         }
 
-        // 新しいアクセストークンを生成
+        // Generate new access token
         String newAccessToken = jwtTokenProvider.createAccessToken(username);
         addAccessTokenCookie(response, newAccessToken);
 
         return ResponseEntity.ok(
-                RsData.of("200", "トークン更新成功")
+                RsData.of("200", "Token refreshed successfully")
         );
     }
 
@@ -128,7 +130,7 @@ public class AuthController {
         userRepository.save(user);
 
         return ResponseEntity.ok(
-                RsData.of("201", "会員登録が完了しました")
+                RsData.of("201", "Registration completed successfully")
         );
     }
 
@@ -150,7 +152,7 @@ public class AuthController {
                 .build();
 
         return ResponseEntity.ok(
-                RsData.of("200", "ユーザー情報取得成功", userInfo)
+                RsData.of("200", "User info retrieved successfully", userInfo)
         );
     }
 
@@ -158,31 +160,31 @@ public class AuthController {
 
     private void validateAccessToken(String accessToken) {
         if (accessToken == null || !jwtTokenProvider.validateToken(accessToken)) {
-            throw new ServiceException("401", "認証が必要です");
+            throw new ServiceException("401", "Authentication required");
         }
     }
 
     private void validateRefreshToken(String refreshToken) {
         if (refreshToken == null || !jwtTokenProvider.validateToken(refreshToken)) {
-            throw new ServiceException("401", "有効ではないトークンです");
+            throw new ServiceException("401", "Invalid token");
         }
     }
 
     private void validateSignupRequest(SignupRequest request) {
         if (!request.isPasswordMatching()) {
-            throw new ServiceException("400", "パスワードが一致しません");
+            throw new ServiceException("400", "Passwords do not match");
         }
 
         if (userService.existsByUsername(request.username())) {
-            throw new ServiceException("400", "既に存在するユーザー名です");
+            throw new ServiceException("400", "Username already exists");
         }
 
         if (userService.existsByNickname(request.nickname())) {
-            throw new ServiceException("400", "既に存在するニックネームです");
+            throw new ServiceException("400", "Nickname already exists");
         }
 
         if (userService.existsByEmail(request.email())) {
-            throw new ServiceException("400", "既に存在するメールアドレスです");
+            throw new ServiceException("400", "Email already exists");
         }
     }
 

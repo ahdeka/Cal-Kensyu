@@ -1,6 +1,5 @@
 package com.back.domain.diary.service;
 
-
 import com.back.domain.diary.dto.request.DiaryCreateRequest;
 import com.back.domain.diary.dto.request.DiaryUpdateRequest;
 import com.back.domain.diary.dto.response.DiaryListResponse;
@@ -19,10 +18,6 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * 日記サービス
- * 日記のCRUDを提供
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -38,10 +33,10 @@ public class DiaryService {
 
         validateDiaryDate(request.diaryDate());
 
-        // 同じ日付の日記が既に存在するかチェック
+        // Check if diary with same date already exists
         diaryRepository.findByUserAndDiaryDate(user, request.diaryDate())
                 .ifPresent(diary -> {
-                    throw new ServiceException("400", "この日付の日記は既に存在します");
+                    throw new ServiceException("400", "A diary entry for this date already exists");
                 });
 
         Diary diary = Diary.builder()
@@ -77,10 +72,10 @@ public class DiaryService {
 
     public DiaryResponse getDiary(Long diaryId, String username) {
         Diary diary = diaryRepository.findById(diaryId)
-                .orElseThrow(() -> new ServiceException("404", "日記が見つかりません"));
+                .orElseThrow(() -> new ServiceException("404", "Diary not found"));
 
         if (!diary.isPublic() && !diary.getUser().getUsername().equals(username)) {
-            throw new ServiceException("403", "この日記を閲覧する権限がありません");
+            throw new ServiceException("403", "You do not have permission to view this diary");
         }
 
         return DiaryResponse.from(diary);
@@ -89,7 +84,7 @@ public class DiaryService {
     @Transactional
     public DiaryResponse updateDiary(Long diaryId, String username, DiaryUpdateRequest request) {
         Diary diary = diaryRepository.findById(diaryId)
-                .orElseThrow(() -> new ServiceException("404", "日記が見つかりません"));
+                .orElseThrow(() -> new ServiceException("404", "Diary not found"));
 
         userService.validateOwnership(diary.getUser().getUsername(), username);
 
@@ -101,7 +96,7 @@ public class DiaryService {
     @Transactional
     public void deleteDiary(Long diaryId, String username) {
         Diary diary = diaryRepository.findById(diaryId)
-                .orElseThrow(() -> new ServiceException("404", "日記が見つかりません"));
+                .orElseThrow(() -> new ServiceException("404", "Diary not found"));
 
         userService.validateOwnership(diary.getUser().getUsername(), username);
 
@@ -114,11 +109,11 @@ public class DiaryService {
         LocalDate oneYearAgo = today.minusYears(1);
 
         if (diaryDate.isAfter(today)) {
-            throw new ServiceException("400", "未来の日付は設定できません");
+            throw new ServiceException("400", "Cannot set a future date");
         }
 
         if (diaryDate.isBefore(oneYearAgo)) {
-            throw new ServiceException("400", "1年以上前の日付は設定できません");
+            throw new ServiceException("400", "Cannot set a date more than one year ago");
         }
     }
 }

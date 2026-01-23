@@ -27,14 +27,14 @@ public enum JlptLevel {
 
     public static JlptLevel fromString(String level) {
         if (level == null || level.trim().isEmpty()) {
-            throw new ServiceException("400", "JLPT レベルが空です。");
+            throw new ServiceException("400", "JLPT level is empty.");
         }
 
         String normalized = level.trim().toUpperCase();
         try {
             return valueOf(normalized);
         } catch (IllegalArgumentException e) {
-            throw new ServiceException("400", "無効なJLPT レベルです: " + level);
+            throw new ServiceException("400", "Invalid JLPT level: " + level);
         }
     }
 }

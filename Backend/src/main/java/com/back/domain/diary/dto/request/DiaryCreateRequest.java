@@ -7,17 +7,17 @@ import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 
 public record DiaryCreateRequest(
-        @NotNull(message = "日付は必須です")
+        @NotNull(message = "Date is required")
         LocalDate diaryDate,
 
-        @NotBlank(message = "タイトルは必須です")
-        @Size(max = 100, message = "タイトルは100文字以内で入力してください")
+        @NotBlank(message = "Title is required")
+        @Size(max = 100, message = "Title must be within 100 characters")
         String title,
 
-        @NotBlank(message = "内容は必須です")
+        @NotBlank(message = "Content is required")
         String content,
 
-        @NotNull(message = "公開設定は必須です")
+        @NotNull(message = "Public setting is required")
         Boolean isPublic
 ) {
 }

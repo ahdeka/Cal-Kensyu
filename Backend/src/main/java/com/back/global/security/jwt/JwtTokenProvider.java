@@ -58,18 +58,18 @@ public class JwtTokenProvider {
             getClaims(token);
             return true;
         } catch (SecurityException | MalformedJwtException e) {
-            log.error("間違ったJWT氏名です。");
+            log.error("Invalid JWT signature.");
         } catch (ExpiredJwtException e) {
-            log.error("만료된 JWT 토큰입니다.");
+            log.error("Expired JWT token.");
         } catch (UnsupportedJwtException e) {
-            log.error("지원되지 않는 JWT 토큰입니다.");
+            log.error("Unsupported JWT token.");
         } catch (IllegalArgumentException e) {
-            log.error("JWT 토큰이 잘못되었습니다.");
+            log.error("JWT token is invalid.");
         }
         return false;
     }
 
-    // Claims 抽出
+    // Extract Claims
     private Claims getClaims(String token) {
         return Jwts.parser()
                 .verifyWith(getSigningKey())

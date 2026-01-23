@@ -8,10 +8,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * ユーザー関連サービス
- * ユーザーの検証および取得を担当
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -22,12 +18,12 @@ public class UserService {
 
     public User getUserByUsername(String username) {
         return userRepository.findByUsername(username)
-                .orElseThrow(() -> new ServiceException("404", "ユーザーが見つかりません"));
+                .orElseThrow(() -> new ServiceException("404", "User not found"));
     }
 
     public void validateOwnership(String ownerUsername, String requestUsername) {
         if (!ownerUsername.equals(requestUsername)) {
-            throw new ServiceException("403", "この操作を実行する権限がありません");
+            throw new ServiceException("403", "You do not have permission to perform this operation");
         }
     }
 

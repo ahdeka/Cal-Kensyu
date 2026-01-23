@@ -27,7 +27,9 @@ public class QuizService {
     private static final int MINIMUM_WORDS_REQUIRED = 4;
     private static final int WRONG_ANSWERS_COUNT = 3;
 
-    // JLPTレベル別クイズ生成
+    /**
+     * Generate JLPT level quiz
+     */
     public List<QuizQuestionResponse> generateJlptQuiz(JlptLevel jlptLevel, int count) {
 
         String levelName = jlptLevel.name();
@@ -38,14 +40,14 @@ public class QuizService {
 
         int actualCount = adjustQuizCount(wordCount, count);
 
-        // ランダムに問題単語を選択
+        // Randomly select question words
         List<QuizWord> questionWords = quizWordRepository.findRandomByJlptLevel(
                 WordSource.JLPT.name(),
                 levelName,
                 actualCount
         );
 
-        // 各単語ごとにクイズを生成
+        // Generate quiz for each word
         List<QuizQuestionResponse> quizzes = questionWords.stream()
                 .map(word -> generateSingleQuiz(word, levelName))
                 .collect(Collectors.toList());
@@ -56,17 +58,17 @@ public class QuizService {
     private void validateWordCount(long wordCount, int requestedCount, String level) {
         if (wordCount < MINIMUM_WORDS_REQUIRED) {
             throw new ServiceException("400",
-                    String.format("JLPT %s の単語が不足しています（最低 %d個必要、実際: %d個）",
+                    String.format("Insufficient words for JLPT %s (minimum required: %d, actual: %d)",
                             level, MINIMUM_WORDS_REQUIRED, wordCount));
         }
 
         if (wordCount < requestedCount) {
-            log.warn("要求されたクイズ数が単語数を超えています - 要求: {}, 実際: {}", requestedCount, wordCount);
+            log.warn("Requested quiz count exceeds available words - requested: {}, actual: {}", requestedCount, wordCount);
         }
     }
 
     private int adjustQuizCount(long wordCount, int requestedCount) {
-        // 誤答選択肢のために最低3つの余裕が必要
+        // Need at least 3 extra words for wrong answer choices
         long maxPossibleCount = wordCount - WRONG_ANSWERS_COUNT;
 
         if (requestedCount > maxPossibleCount) {
@@ -76,12 +78,14 @@ public class QuizService {
         return requestedCount;
     }
 
-    // 単一クイズ生成
+    /**
+     * Generate single quiz
+     */
     private QuizQuestionResponse generateSingleQuiz(QuizWord correctWord, String level) {
-        // クイズタイプをランダムに決定（漢字→ひらがな or ひらがな→意味）
+        // Randomly determine quiz type (kanji→hiragana or hiragana→meaning)
         QuizType quizType = determineQuizType();
 
-        // 2. 誤答選択肢3つを取得（似た長さの単語）
+        // Get 3 wrong answer choices (words with similar length)
         List<QuizWord> wrongWords = getSimilarLengthWrongAnswers(correctWord, level, quizType);
 
         validateWrongAnswers(wrongWords);
@@ -108,26 +112,28 @@ public class QuizService {
     private void validateWrongAnswers(List<QuizWord> wrongWords) {
         if (wrongWords.size() < WRONG_ANSWERS_COUNT) {
             throw new ServiceException("500",
-                    String.format("誤答選択肢の生成に失敗しました（必要: %d個、実際: %d個）",
+                    String.format("Failed to generate wrong answer choices (required: %d, actual: %d)",
                             WRONG_ANSWERS_COUNT, wrongWords.size()));
         }
     }
 
-    // クイズの内容（問題、選択肢、正解）を構築
+    /**
+     * Build quiz content (question, choices, correct answer)
+     */
     private QuizContent buildQuizContent(QuizWord correctWord, List<QuizWord> wrongWords, QuizType quizType, String level) {
         QuizContent content = new QuizContent();
         content.choices = new ArrayList<>();
 
         if (quizType == QuizType.KANJI_TO_HIRAGANA) {
-            // 漢字 → ひらがな
+            // Kanji → Hiragana
             content.question = correctWord.getWord();
-            content.questionType = "この単語の読み方は？";
+            content.questionType = "What is the reading of this word?";
             content.correctAnswer = correctWord.getHiragana();
 
             content.choices.add(correctWord.getHiragana());
             wrongWords.forEach(wrong -> content.choices.add(wrong.getHiragana()));
         } else {
-            // 漢字 → 意味（レベル別に表示方式を変更）
+            // Kanji → Meaning (display format changes by level)
             JlptLevel currentLevel = JlptLevel.valueOf(level);
 
             if (currentLevel == JlptLevel.N5 || currentLevel == JlptLevel.N4) {
@@ -138,7 +144,7 @@ public class QuizService {
                 content.question = correctWord.getWord();
             }
 
-            content.questionType = "この単語の意味は？";
+            content.questionType = "What is the meaning of this word?";
             content.correctAnswer = correctWord.getMeaning();
 
             content.choices.add(correctWord.getMeaning());
@@ -148,10 +154,12 @@ public class QuizService {
         return content;
     }
 
-    // 解説文を生成
+    /**
+     * Generate explanation text
+     */
     private String buildExplanation(QuizWord word) {
         return String.format(
-                "「%s」は「%s」と読み、「%s」という意味です。",
+                "「%s」is read as「%s」and means「%s」.",
                 word.getWord(),
                 word.getHiragana(),
                 word.getMeaning()
@@ -159,32 +167,32 @@ public class QuizService {
     }
 
     /**
-     * 似た長さの誤答選択肢を取得
-     * 正解と±2文字以内の単語を優先選択して難易度を高める
+     * Get wrong answer choices with similar length
+     * Prioritize words within ±2 characters for increased difficulty
      */
     private List<QuizWord> getSimilarLengthWrongAnswers(QuizWord correctWord, String level, QuizType quizType) {
-        // 正解の長さを計算
+        // Calculate length of correct answer
         int targetLength = calculateTargetLength(correctWord, quizType);
 
-        // 同じレベルの全単語を取得（正解を除く）
+        // Get all words of same level (excluding correct answer)
         List<QuizWord> allWords = quizWordRepository.findBySourceAndSourceDetail(WordSource.JLPT, level)
                 .stream()
                 .filter(word -> !word.getId().equals(correctWord.getId()))
                 .collect(Collectors.toList());
 
-        // 優先順位別に単語を分類
+        // Categorize words by priority
         WordsByLength wordsByLength = categorizeWordsByLength(allWords, targetLength, quizType);
 
-        // 優先順位に従って誤答を選択（3つ必要）
+        // Select wrong answers according to priority (need 3)
         return selectWrongAnswers(wordsByLength);
     }
 
     /**
-     * 対象の長さを計算
+     * Calculate target length
      *
-     * @param word 単語
-     * @param quizType クイズタイプ
-     * @return 文字数
+     * @param word Word
+     * @param quizType Quiz type
+     * @return Character count
      */
     private int calculateTargetLength(QuizWord word, QuizType quizType) {
         return quizType == QuizType.KANJI_TO_HIRAGANA
@@ -193,12 +201,12 @@ public class QuizService {
     }
 
     /**
-     * 単語を長さの差で分類
+     * Categorize words by length difference
      *
-     * @param words 単語リスト
-     * @param targetLength 目標の長さ
-     * @param quizType クイズタイプ
-     * @return 分類された単語
+     * @param words Word list
+     * @param targetLength Target length
+     * @param quizType Quiz type
+     * @return Categorized words
      */
     private WordsByLength categorizeWordsByLength(List<QuizWord> words, int targetLength, QuizType quizType) {
         WordsByLength result = new WordsByLength();
@@ -218,7 +226,7 @@ public class QuizService {
             }
         }
 
-        // 各グループをシャッフル
+        // Shuffle each group
         Collections.shuffle(result.exactMatch);
         Collections.shuffle(result.closeMatch);
         Collections.shuffle(result.nearMatch);
@@ -228,44 +236,44 @@ public class QuizService {
     }
 
     /**
-     * 優先順位に従って誤答を選択
+     * Select wrong answers according to priority
      *
-     * @param wordsByLength 長さ別に分類された単語
-     * @return 選択された誤答（最大3つ）
+     * @param wordsByLength Words categorized by length
+     * @return Selected wrong answers (max 3)
      */
     private List<QuizWord> selectWrongAnswers(WordsByLength wordsByLength) {
         List<QuizWord> wrongAnswers = new ArrayList<>();
 
-        // 第1優先順位: 正確に同じ長さ
+        // 1st priority: Exact same length
         addWordsUpToLimit(wrongAnswers, wordsByLength.exactMatch, WRONG_ANSWERS_COUNT);
         if (wrongAnswers.size() >= WRONG_ANSWERS_COUNT) {
             return wrongAnswers.subList(0, WRONG_ANSWERS_COUNT);
         }
 
-        // 第2優先順位: ±1文字
+        // 2nd priority: ±1 character
         addWordsUpToLimit(wrongAnswers, wordsByLength.closeMatch, WRONG_ANSWERS_COUNT);
         if (wrongAnswers.size() >= WRONG_ANSWERS_COUNT) {
             return wrongAnswers.subList(0, WRONG_ANSWERS_COUNT);
         }
 
-        // 第3優先順位: ±2文字
+        // 3rd priority: ±2 characters
         addWordsUpToLimit(wrongAnswers, wordsByLength.nearMatch, WRONG_ANSWERS_COUNT);
         if (wrongAnswers.size() >= WRONG_ANSWERS_COUNT) {
             return wrongAnswers.subList(0, WRONG_ANSWERS_COUNT);
         }
 
-        // 第4優先順位: 残り（不足する場合はここで補充）
+        // 4th priority: Rest (fill in if insufficient)
         addWordsUpToLimit(wrongAnswers, wordsByLength.others, WRONG_ANSWERS_COUNT);
 
         return wrongAnswers;
     }
 
     /**
-     * リストから指定数まで単語を追加
+     * Add words from list up to specified limit
      *
-     * @param target 追加先リスト
-     * @param source 追加元リスト
-     * @param limit 最大数
+     * @param target Target list
+     * @param source Source list
+     * @param limit Maximum count
      */
     private void addWordsUpToLimit(List<QuizWord> target, List<QuizWord> source, int limit) {
         int remaining = limit - target.size();
@@ -273,15 +281,15 @@ public class QuizService {
     }
 
     /**
-     * クイズタイプ Enum
+     * Quiz type Enum
      */
     private enum QuizType {
-        KANJI_TO_HIRAGANA,  // 漢字 → ひらがな
-        HIRAGANA_TO_MEANING // ひらがな → 意味
+        KANJI_TO_HIRAGANA,  // Kanji → Hiragana
+        HIRAGANA_TO_MEANING // Hiragana → Meaning
     }
 
     /**
-     * クイズの内容を保持する内部クラス
+     * Inner class to hold quiz content
      */
     private static class QuizContent {
         String question;
@@ -291,12 +299,12 @@ public class QuizService {
     }
 
     /**
-     * 長さ別に分類された単語を保持する内部クラス
+     * Inner class to hold words categorized by length
      */
     private static class WordsByLength {
-        List<QuizWord> exactMatch = new ArrayList<>();  // 正確に同じ長さ
-        List<QuizWord> closeMatch = new ArrayList<>();  // ±1文字
-        List<QuizWord> nearMatch = new ArrayList<>();   // ±2文字
-        List<QuizWord> others = new ArrayList<>();      // その他
+        List<QuizWord> exactMatch = new ArrayList<>();  // Exact same length
+        List<QuizWord> closeMatch = new ArrayList<>();  // ±1 character
+        List<QuizWord> nearMatch = new ArrayList<>();   // ±2 characters
+        List<QuizWord> others = new ArrayList<>();      // Others
     }
 }

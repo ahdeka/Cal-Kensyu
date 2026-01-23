@@ -17,8 +17,8 @@ public class SwaggerConfig {
 
         return new OpenAPI()
                 .info(new Info()
-                        .title("JWT 로그인 API")
-                        .description("JWT 쿠키 기반 인증 시스템 API 문서")
+                        .title("JWT Login API")
+                        .description("JWT Cookie-based Authentication System API Documentation")
                         .version("1.0.0"))
                 .addSecurityItem(new SecurityRequirement().addList(securitySchemeName))
                 .components(new Components()

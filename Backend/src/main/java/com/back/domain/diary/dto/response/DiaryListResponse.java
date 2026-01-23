@@ -8,13 +8,13 @@ import java.time.LocalDateTime;
 
 @Builder
 public record DiaryListResponse(
-    Long id,
-    String nickname,
-    LocalDate diaryDate, // 日記内容の日
-    String title,
-    String contentPreview,
-    boolean isPublic,
-    LocalDateTime createDate // 作成した日
+        Long id,
+        String nickname,
+        LocalDate diaryDate, // Date of diary content
+        String title,
+        String contentPreview,
+        boolean isPublic,
+        LocalDateTime createDate // Date created
 ) {
     public static DiaryListResponse from(Diary diary) {
         String preview = diary.getContent().length() > 100

@@ -20,7 +20,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/quiz")
 @RequiredArgsConstructor
-@Tag(name = "Quiz", description = "問題演習 API")
+@Tag(name = "Quiz", description = "Quiz Practice API")
 public class QuizController {
 
     private final QuizService quizService;
@@ -29,7 +29,7 @@ public class QuizController {
     private static final int MAX_QUIZ_COUNT = 50;
 
     @GetMapping("/{level}")
-    @Operation(summary = "JLPT レベル別クイズ生成", description = "指定されたJLPTレベルのクイズを生成します")
+    @Operation(summary = "Generate JLPT level quiz", description = "Generates quiz for the specified JLPT level")
     public ResponseEntity<RsData<List<QuizQuestionResponse>>> generateQuiz(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable String level,
@@ -42,14 +42,14 @@ public class QuizController {
         List<QuizQuestionResponse> quizzes = quizService.generateJlptQuiz(jlptLevel, count);
 
         return ResponseEntity.ok(
-                RsData.of("200", "クイズを生成しました", quizzes)
+                RsData.of("200", "Quiz generated successfully", quizzes)
         );
     }
 
     private void validateQuizCount(int count) {
         if (count < MIN_QUIZ_COUNT || count > MAX_QUIZ_COUNT) {
             throw new ServiceException("400",
-                    String.format("問題数は%dから%dの間で指定してください", MIN_QUIZ_COUNT, MAX_QUIZ_COUNT));
+                    String.format("Question count must be between %d and %d", MIN_QUIZ_COUNT, MAX_QUIZ_COUNT));
         }
     }
 }

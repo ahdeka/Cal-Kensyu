@@ -18,10 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * 単語帳サービス
- * 単語の登録、照会、修正、削除機能を提供
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -128,9 +124,9 @@ public class VocabularyService {
         return VocabularyResponse.from(vocabulary);
     }
 
-    // ===== Helper Method ===== /
+    // ===== Helper Method ===== //
     private Vocabulary getVocabularyById(Long vocabularyId) {
         return vocabularyRepository.findById(vocabularyId)
-                .orElseThrow(() -> new ServiceException("404", "単語が見つかりません"));
+                .orElseThrow(() -> new ServiceException("404", "Vocabulary not found"));
     }
 }

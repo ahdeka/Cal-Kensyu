@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 public class User extends BaseEntity {
 
     @Column(unique = true, nullable = false, length = 50)
-    private String username; // ログインID
+    private String username; // Login ID
 
     @Column(nullable = false)
     private String password;
