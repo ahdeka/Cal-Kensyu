@@ -10,9 +10,9 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestCookieException;
 import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.Comparator;
@@ -122,8 +122,19 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(MissingRequestCookieException.class)
+    public ResponseEntity<RsData<Void>> handle(MissingRequestCookieException ex) {
+        log.error("MissingRequestCookieException: {}", ex.getMessage());
+        return new ResponseEntity<>(
+                new RsData<>(
+                        "400",
+                        "%s cookie is required".formatted(ex.getCookieName())
+                ),
+                BAD_REQUEST
+        );
+    }
+
     @ExceptionHandler(ServiceException.class)
-    @ResponseStatus(BAD_REQUEST)
     public ResponseEntity<RsData<Void>> handle(ServiceException ex) {
         log.error("ServiceException: {}", ex.getMessage());
         RsData<Void> rsData = ex.getRsData();

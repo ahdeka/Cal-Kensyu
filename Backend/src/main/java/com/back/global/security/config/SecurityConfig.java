@@ -1,6 +1,8 @@
 package com.back.global.security.config;
 
 import com.back.global.security.auth.CustomUserDetailsService;
+import com.back.global.security.handler.CustomAccessDeniedHandler;
+import com.back.global.security.handler.CustomAuthenticationEntryPoint;
 import com.back.global.security.jwt.JwtAuthenticationFilter;
 import com.back.global.security.jwt.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +30,8 @@ public class SecurityConfig {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final CustomUserDetailsService userDetailsService;
+    private final CustomAuthenticationEntryPoint authenticationEntryPoint;
+    private final CustomAccessDeniedHandler accessDeniedHandler;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -53,6 +57,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         // All other requests require authentication
                         .anyRequest().authenticated()
+                )
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(authenticationEntryPoint)  // 401 for authentication failures
+                        .accessDeniedHandler(accessDeniedHandler)            // 403 for authorization failures
                 )
                 .headers(headers -> headers
                         .frameOptions(frame -> frame.sameOrigin())  // For H2 Console
