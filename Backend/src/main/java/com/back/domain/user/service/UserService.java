@@ -27,6 +27,13 @@ public class UserService {
         }
     }
 
+    /**
+     * Validate if the requesting user is the owner (User entity overload)
+     */
+    public void validateOwnership(User owner, String requestUsername) {
+        validateOwnership(owner.getUsername(), requestUsername);
+    }
+
     public boolean existsByUsername(String username) {
         return userRepository.existsByUsername(username);
     }

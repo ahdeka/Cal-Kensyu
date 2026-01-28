@@ -27,17 +27,14 @@ public class DiaryService {
     private final DiaryRepository diaryRepository;
     private final UserService userService;
 
+    private static final int MAX_YEARS_BACK = 1;
+
     @Transactional
     public DiaryResponse createDiary(String username, DiaryCreateRequest request) {
         User user = userService.getUserByUsername(username);
 
         validateDiaryDate(request.diaryDate());
-
-        // Check if diary with same date already exists
-        diaryRepository.findByUserAndDiaryDate(user, request.diaryDate())
-                .ifPresent(diary -> {
-                    throw new ServiceException("400", "A diary entry for this date already exists");
-                });
+        validateDuplicateDiaryDate(user, request.diaryDate());
 
         Diary diary = Diary.builder()
                 .user(user)
@@ -71,22 +68,29 @@ public class DiaryService {
     }
 
     public DiaryResponse getDiary(Long diaryId, String username) {
-        Diary diary = diaryRepository.findById(diaryId)
-                .orElseThrow(() -> new ServiceException("404", "Diary not found"));
+        Diary diary = getDiaryById(diaryId);
 
-        if (!diary.isPublic() && !diary.getUser().getUsername().equals(username)) {
-            throw new ServiceException("403", "You do not have permission to view this diary");
-        }
+        validateViewPermission(diary, username);
 
         return DiaryResponse.from(diary);
     }
 
     @Transactional
     public DiaryResponse updateDiary(Long diaryId, String username, DiaryUpdateRequest request) {
-        Diary diary = diaryRepository.findById(diaryId)
-                .orElseThrow(() -> new ServiceException("404", "Diary not found"));
+        Diary diary = getDiaryById(diaryId);
 
-        userService.validateOwnership(diary.getUser().getUsername(), username);
+        userService.validateOwnership(diary.getUser(), username);
+
+        // Validate new diary date if changed
+        if (!diary.getDiaryDate().equals(request.diaryDate())) {
+            validateDiaryDate(request.diaryDate());
+
+            // Check if new date conflicts with existing diary
+            diaryRepository.findByUserAndDiaryDate(diary.getUser(), request.diaryDate())
+                    .ifPresent(existingDiary -> {
+                        throw new ServiceException("400", "A diary entry for this date already exists");
+                    });
+        }
 
         diary.update(request.title(), request.content(), request.diaryDate(), request.isPublic());
 
@@ -95,18 +99,24 @@ public class DiaryService {
 
     @Transactional
     public void deleteDiary(Long diaryId, String username) {
-        Diary diary = diaryRepository.findById(diaryId)
-                .orElseThrow(() -> new ServiceException("404", "Diary not found"));
+        Diary diary = getDiaryById(diaryId);
 
-        userService.validateOwnership(diary.getUser().getUsername(), username);
+        userService.validateOwnership(diary.getUser(), username);
 
         diaryRepository.delete(diary);
     }
 
+    private Diary getDiaryById(Long diaryId) {
+        return diaryRepository.findById(diaryId)
+                .orElseThrow(() -> new ServiceException("404", "Diary not found"));
+    }
+
+
     // ===== Helper Method ===== //
+
     private void validateDiaryDate(LocalDate diaryDate) {
         LocalDate today = LocalDate.now();
-        LocalDate oneYearAgo = today.minusYears(1);
+        LocalDate oneYearAgo = today.minusYears(MAX_YEARS_BACK);
 
         if (diaryDate.isAfter(today)) {
             throw new ServiceException("400", "Cannot set a future date");
@@ -115,5 +125,28 @@ public class DiaryService {
         if (diaryDate.isBefore(oneYearAgo)) {
             throw new ServiceException("400", "Cannot set a date more than one year ago");
         }
+    }
+
+    private void validateViewPermission(Diary diary, String username) {
+        // Public diary - anyone can view
+        if (diary.isPublic()) {
+            return;
+        }
+
+        // Private diary - only owner can view
+        if (username == null) {
+            throw new ServiceException("401", "Authentication required to view private diary");
+        }
+
+        if (!diary.getUser().getUsername().equals(username)) {
+            throw new ServiceException("403", "You do not have permission to view this diary");
+        }
+    }
+
+    private void validateDuplicateDiaryDate(User user, LocalDate diaryDate) {
+        diaryRepository.findByUserAndDiaryDate(user, diaryDate)
+                .ifPresent(diary -> {
+                    throw new ServiceException("400", "A diary entry for this date already exists");
+                });
     }
 }

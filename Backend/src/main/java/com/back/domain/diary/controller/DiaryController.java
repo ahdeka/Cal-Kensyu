@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -35,9 +36,9 @@ public class DiaryController {
 
         DiaryResponse response = diaryService.createDiary(userDetails.getUsername(), request);
 
-        return ResponseEntity.ok(
-                RsData.of("201", "Diary created successfully", response)
-        );
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(RsData.of("201", "Diary created successfully", response));
     }
 
     @GetMapping("/public")

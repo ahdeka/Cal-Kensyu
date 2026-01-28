@@ -43,4 +43,15 @@ public class Diary extends BaseEntity {
         this.diaryDate = diaryDate;
         this.isPublic = isPublic;
     }
+
+    public String getContentPreview() {
+        return getContentPreview(100);
+    }
+
+    public String getContentPreview(int length) {
+        if (content.length() <= length) {
+            return content;
+        }
+        return content.substring(0, length) + "...";
+    }
 }

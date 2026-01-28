@@ -8,6 +8,7 @@ import com.back.global.security.jwt.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -53,6 +54,8 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/h2-console/**"
                         ).permitAll()
+                        // Allow GET requests to individual diary entries by ID
+                        .requestMatchers(HttpMethod.GET, "/api/diary/{id:[0-9]+}").permitAll()
                         // Admin API requires ADMIN role
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         // All other requests require authentication

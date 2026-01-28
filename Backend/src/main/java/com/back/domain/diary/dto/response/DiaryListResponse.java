@@ -17,16 +17,12 @@ public record DiaryListResponse(
         LocalDateTime createDate // Date created
 ) {
     public static DiaryListResponse from(Diary diary) {
-        String preview = diary.getContent().length() > 100
-                ? diary.getContent().substring(0, 100) + "..."
-                : diary.getContent();
-
         return DiaryListResponse.builder()
                 .id(diary.getId())
                 .nickname(diary.getUser().getNickname())
                 .diaryDate(diary.getDiaryDate())
                 .title(diary.getTitle())
-                .contentPreview(preview)
+                .contentPreview(diary.getContentPreview())  // Use Entity's method
                 .isPublic(diary.isPublic())
                 .createDate(diary.getCreateDate())
                 .build();
