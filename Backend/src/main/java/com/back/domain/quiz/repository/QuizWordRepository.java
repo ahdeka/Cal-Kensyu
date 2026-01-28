@@ -8,23 +8,23 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-public interface    QuizWordRepository extends JpaRepository<QuizWord, Long> {
+public interface QuizWordRepository extends JpaRepository<QuizWord, Long> {
 
-    // JLPT 레벨별 조회
+    // Query by JLPT level
     List<QuizWord> findBySourceAndSourceDetail(WordSource source, String sourceDetail);
 
-    // JLPT 레벨별 랜덤 조회
+    // Random query by JLPT level
     @Query(value = "SELECT * FROM quiz_words WHERE source = :source AND source_detail = :level ORDER BY RANDOM() LIMIT :limit", nativeQuery = true)
     List<QuizWord> findRandomByJlptLevel(@Param("source") String source, @Param("level") String level, @Param("limit") int limit);
 
-    // 특정 단어 제외하고 랜덤 조회 (오답 선택지용)
+    // Random query excluding specific word (for incorrect answer options)
     @Query(value = "SELECT * FROM quiz_words WHERE source = :source AND source_detail = :level AND id != :excludeId ORDER BY RANDOM() LIMIT :limit", nativeQuery = true)
     List<QuizWord> findRandomByJlptLevelExcluding(@Param("source") String source, @Param("level") String level, @Param("excludeId") Long excludeId, @Param("limit") int limit);
 
-    // 출처별 개수 조회
+    // Count by source
     long countBySourceAndSourceDetail(WordSource source, String sourceDetail);
 
-    // 모든 JLPT 단어 조회
+    // Query all JLPT words
     List<QuizWord> findBySource(WordSource source);
 
     boolean existsBySourceAndSourceDetailAndWordAndHiragana(

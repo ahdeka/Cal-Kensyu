@@ -3,14 +3,10 @@ package com.back.domain.auth.controller;
 import com.back.domain.auth.dto.request.LoginRequest;
 import com.back.domain.auth.dto.request.SignupRequest;
 import com.back.domain.auth.dto.response.UserInfoResponse;
-import com.back.domain.user.entity.Role;
-import com.back.domain.user.entity.User;
-import com.back.domain.user.repository.UserRepository;
-import com.back.domain.user.service.UserService;
-import com.back.global.exception.ServiceException;
+import com.back.domain.auth.service.AuthService;
 import com.back.global.rsData.RsData;
+import com.back.global.security.auth.CustomUserDetails;
 import com.back.global.security.jwt.JwtProperties;
-import com.back.global.security.jwt.JwtTokenProvider;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
@@ -18,11 +14,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
 
 
 @Slf4j
@@ -32,38 +25,17 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Auth", description = "Authentication API")
 public class AuthController {
 
-    private final AuthenticationManager authenticationManager;
-    private final JwtTokenProvider jwtTokenProvider;
+    private final AuthService authService;
     private final JwtProperties jwtProperties;
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final UserService userService;
-
-    private static final String ACCESS_TOKEN_NAME = "accessToken";
-    private static final String REFRESH_TOKEN_NAME = "refreshToken";
 
     @PostMapping("/login")
     public ResponseEntity<RsData<Void>> login(
             @Valid @RequestBody LoginRequest request,
             HttpServletResponse response) {
 
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.username(),
-                        request.password()
-                )
-        );
-
-        String accessToken = jwtTokenProvider.createAccessToken(request.username());
-        String refreshToken = jwtTokenProvider.createRefreshToken(request.username());
-
-        // Save refresh token to DB
-        User user = userService.getUserByUsername(request.username());
-        user.updateRefreshToken(refreshToken);
-        userRepository.save(user);
-
-        // Save to cookie
-        addTokenCookies(response,  accessToken, refreshToken);
+        authService.login(request.username(), request.password());
+        AuthService.TokenPair tokens = authService.createTokens(request.username());
+        addTokenCookies(response, tokens.accessToken(), tokens.refreshToken());
 
         return ResponseEntity.ok(
                 RsData.of("200", "Login successful")
@@ -72,20 +44,11 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ResponseEntity<RsData<Void>> logout(
-            @CookieValue(name = REFRESH_TOKEN_NAME, required = false) String refreshToken,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             HttpServletResponse response) {
 
-        // Delete refresh token from DB
-        if (refreshToken != null && jwtTokenProvider.validateToken(refreshToken)) {
-            String username = jwtTokenProvider.getUsername(refreshToken);
-            userRepository.findByUsername(username).ifPresent(user -> {
-                user.destroyRefreshToken();
-                userRepository.save(user);
-            });
-        }
-
-        // Clear cookies
-        clearTokenCookies(response);
+        authService.logout(userDetails.getUsername());
+        deleteTokenCookies(response);
 
         return ResponseEntity.ok(
                 RsData.of("200", "Logout successful")
@@ -94,20 +57,10 @@ public class AuthController {
 
     @PostMapping("/refresh")
     public ResponseEntity<RsData<Void>> refresh(
-            @CookieValue(name = REFRESH_TOKEN_NAME, required = false) String refreshToken,
+            @CookieValue("refreshToken") String refreshToken,
             HttpServletResponse response) {
 
-        validateRefreshToken(refreshToken);
-
-        String username = jwtTokenProvider.getUsername(refreshToken);
-        User user = userService.getUserByUsername(username);
-
-        if (!refreshToken.equals(user.getRefreshToken())) {
-            throw new ServiceException("401", "Token does not match");
-        }
-
-        // Generate new access token
-        String newAccessToken = jwtTokenProvider.createAccessToken(username);
+        String newAccessToken = authService.refreshAccessToken(refreshToken);
         addAccessTokenCookie(response, newAccessToken);
 
         return ResponseEntity.ok(
@@ -116,18 +69,10 @@ public class AuthController {
     }
 
     @PostMapping("/signup")
-    public ResponseEntity<RsData<Void>> signup(@Valid @RequestBody SignupRequest request) {
-        validateSignupRequest(request);
+    public ResponseEntity<RsData<Void>> signup(
+            @Valid @RequestBody SignupRequest request) {
 
-        User user = User.builder()
-                .username(request.username())
-                .password(passwordEncoder.encode(request.password()))
-                .email(request.email())
-                .nickname(request.nickname())
-                .role(Role.USER)
-                .build();
-
-        userRepository.save(user);
+        authService.signup(request);
 
         return ResponseEntity.ok(
                 RsData.of("201", "Registration completed successfully")
@@ -136,90 +81,49 @@ public class AuthController {
 
     @GetMapping("/me")
     public ResponseEntity<RsData<UserInfoResponse>> getCurrentUser(
-            @CookieValue(name = ACCESS_TOKEN_NAME, required = false) String accessToken) {
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        validateAccessToken(accessToken);
+        UserInfoResponse userInfo = authService.getUserInfo(userDetails.getUsername());
 
-        String username = jwtTokenProvider.getUsername(accessToken);
-        User user = userService.getUserByUsername(username);
-
-        UserInfoResponse userInfo = UserInfoResponse.builder()
-                .id(user.getId())
-                .username(user.getUsername())
-                .email(user.getEmail())
-                .nickname(user.getNickname())
-                .role(user.getRole().name())
-                .build();
-
-        return ResponseEntity.ok(
-                RsData.of("200", "User info retrieved successfully", userInfo)
-        );
+        return ResponseEntity.ok(RsData.of("200", "User info retrieved successfully", userInfo));
     }
 
     // ===== Private Helper Methods =====
 
-    private void validateAccessToken(String accessToken) {
-        if (accessToken == null || !jwtTokenProvider.validateToken(accessToken)) {
-            throw new ServiceException("401", "Authentication required");
-        }
-    }
-
-    private void validateRefreshToken(String refreshToken) {
-        if (refreshToken == null || !jwtTokenProvider.validateToken(refreshToken)) {
-            throw new ServiceException("401", "Invalid token");
-        }
-    }
-
-    private void validateSignupRequest(SignupRequest request) {
-        if (!request.isPasswordMatching()) {
-            throw new ServiceException("400", "Passwords do not match");
-        }
-
-        if (userService.existsByUsername(request.username())) {
-            throw new ServiceException("400", "Username already exists");
-        }
-
-        if (userService.existsByNickname(request.nickname())) {
-            throw new ServiceException("400", "Nickname already exists");
-        }
-
-        if (userService.existsByEmail(request.email())) {
-            throw new ServiceException("400", "Email already exists");
-        }
-    }
-
-    private void addTokenCookies(HttpServletResponse response, String accessToken, String refreshToken) {
-        response.addCookie(createCookie(
-                ACCESS_TOKEN_NAME,
-                accessToken,
-                jwtProperties.getAccessTokenCookieMaxAge()
-        ));
-        response.addCookie(createCookie(
-                REFRESH_TOKEN_NAME,
-                refreshToken,
-                jwtProperties.getRefreshTokenCookieMaxAge()
-        ));
+    private void addTokenCookies(HttpServletResponse response,
+                                 String accessToken,
+                                 String refreshToken) {
+        addAccessTokenCookie(response, accessToken);
+        addRefreshTokenCookie(response, refreshToken);
     }
 
     private void addAccessTokenCookie(HttpServletResponse response, String accessToken) {
-        response.addCookie(createCookie(
-                ACCESS_TOKEN_NAME,
-                accessToken,
-                jwtProperties.getAccessTokenCookieMaxAge()));
-    }
-
-    private void clearTokenCookies(HttpServletResponse response) {
-        response.addCookie(createCookie(ACCESS_TOKEN_NAME, null, 0));
-        response.addCookie(createCookie(REFRESH_TOKEN_NAME, null, 0));
-    }
-
-    private Cookie createCookie(String name, String value, int maxAge) {
-        Cookie cookie = new Cookie(name, value);
+        Cookie cookie = new Cookie("accessToken", accessToken);
         cookie.setHttpOnly(true);
-        cookie.setSecure(false);
+        cookie.setSecure(true);
         cookie.setPath("/");
-        cookie.setMaxAge(maxAge);
-        cookie.setDomain("localhost");
-        return cookie;
+        cookie.setMaxAge(jwtProperties.getAccessTokenCookieMaxAge());
+        response.addCookie(cookie);
+    }
+
+    private void addRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
+        Cookie cookie = new Cookie("refreshToken", refreshToken);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(true);
+        cookie.setPath("/");
+        cookie.setMaxAge(jwtProperties.getRefreshTokenCookieMaxAge());
+        response.addCookie(cookie);
+    }
+
+    private void deleteTokenCookies(HttpServletResponse response) {
+        Cookie accessCookie = new Cookie("accessToken", null);
+        accessCookie.setMaxAge(0);
+        accessCookie.setPath("/");
+        response.addCookie(accessCookie);
+
+        Cookie refreshCookie = new Cookie("refreshToken", null);
+        refreshCookie.setMaxAge(0);
+        refreshCookie.setPath("/");
+        response.addCookie(refreshCookie);
     }
 }
