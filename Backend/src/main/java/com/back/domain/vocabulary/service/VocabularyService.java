@@ -81,7 +81,7 @@ public class VocabularyService {
     public VocabularyResponse getVocabulary(Long vocabularyId, String username) {
         Vocabulary vocabulary = getVocabularyById(vocabularyId);
 
-        userService.validateOwnership(vocabulary.getUser().getUsername(), username);
+        userService.validateOwnership(vocabulary.getUser(), username);
 
         return VocabularyResponse.from(vocabulary);
     }
@@ -90,7 +90,7 @@ public class VocabularyService {
     public VocabularyResponse updateVocabulary(Long vocabularyId, String username, VocabularyUpdateRequest request) {
         Vocabulary vocabulary = getVocabularyById(vocabularyId);
 
-        userService.validateOwnership(vocabulary.getUser().getUsername(), username);
+        userService.validateOwnership(vocabulary.getUser(), username);
 
         vocabulary.update(
                 request.word(),
@@ -108,7 +108,7 @@ public class VocabularyService {
     public void deleteVocabulary(Long vocabularyId, String username) {
         Vocabulary vocabulary = getVocabularyById(vocabularyId);
 
-        userService.validateOwnership(vocabulary.getUser().getUsername(), username);
+        userService.validateOwnership(vocabulary.getUser(), username);
 
         vocabularyRepository.delete(vocabulary);
     }
@@ -117,7 +117,7 @@ public class VocabularyService {
     public VocabularyResponse updateStudyStatus(Long vocabularyId, String username, StudyStatus studyStatus) {
         Vocabulary vocabulary = getVocabularyById(vocabularyId);
 
-        userService.validateOwnership(vocabulary.getUser().getUsername(), username);
+        userService.validateOwnership(vocabulary.getUser(), username);
 
         vocabulary.updateStudyStatus(studyStatus);
 

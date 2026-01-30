@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -34,9 +35,9 @@ public class VocabularyController {
 
         VocabularyResponse response = vocabularyService.createVocabulary(userDetails.getUsername(), request);
 
-        return ResponseEntity.ok(
-                RsData.of("200", "Vocabulary registered successfully", response)
-        );
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(RsData.of("201", "Vocabulary registered successfully", response));
     }
 
     @Operation(summary = "Get all vocabularies", description = "Retrieves all vocabulary words from user's list")
@@ -116,7 +117,7 @@ public class VocabularyController {
         vocabularyService.deleteVocabulary(vocabularyId, userDetails.getUsername());
 
         return ResponseEntity.ok(
-                RsData.of("200", "Vocabulary deleted successfully", null)
+                RsData.of("200", "Vocabulary deleted successfully")
         );
     }
 
