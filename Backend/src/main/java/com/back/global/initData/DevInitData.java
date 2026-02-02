@@ -69,6 +69,11 @@ public class DevInitData {
 
     @Transactional
     public void createDiaries() {
+        if (diaryRepository.count() > 0) {
+            log.info("Diaries already exist: skipping");
+            return;
+        }
+
         // Retrieve users
         User user1 = userRepository.findByUsername("user1").orElse(null);
         User user2 = userRepository.findByUsername("user2").orElse(null);
@@ -155,6 +160,11 @@ public class DevInitData {
 
     @Transactional
     public void createVocabularies() {
+        if (vocabularyRepository.count() > 0) {
+            log.info("Vocabularies already exist: skipping");
+            return;
+        }
+
         // Retrieve user
         User user1 = userRepository.findByUsername("user1").orElse(null);
 

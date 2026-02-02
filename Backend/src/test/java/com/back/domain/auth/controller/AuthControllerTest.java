@@ -331,50 +331,6 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.msg").value("refreshToken cookie is required"));
     }
 
-    // ========== Get Current User Tests ==========
-
-    @Test
-    @DisplayName("GET /api/auth/me - Get current user info success")
-    void getCurrentUser_Success() throws Exception {
-        // given
-        createTestUser("testuser", "password");
-        Cookie accessToken = performLogin("testuser", "password");
-
-        // when & then
-        mockMvc.perform(get("/api/auth/me")
-                        .cookie(accessToken))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.resultCode").value("200"))
-                .andExpect(jsonPath("$.msg").value("User info retrieved successfully"))
-                .andExpect(jsonPath("$.data.username").value("testuser"))
-                .andExpect(jsonPath("$.data.email").value("testuser@test.com"))
-                .andExpect(jsonPath("$.data.nickname").value("testusernick"))
-                .andExpect(jsonPath("$.data.role").value("USER"));
-    }
-
-    @Test
-    @DisplayName("GET /api/auth/me - Without authentication returns 401")
-    void getCurrentUser_WithoutAuth_Returns401() throws Exception {
-        // when & then
-        mockMvc.perform(get("/api/auth/me"))
-                .andDo(print())
-                .andExpect(status().isUnauthorized());
-    }
-
-    @Test
-    @DisplayName("GET /api/auth/me - Invalid token returns 401")
-    void getCurrentUser_InvalidToken_Returns401() throws Exception {
-        // given
-        Cookie invalidToken = new Cookie("accessToken", "invalid.jwt.token");
-
-        // when & then
-        mockMvc.perform(get("/api/auth/me")
-                        .cookie(invalidToken))
-                .andDo(print())
-                .andExpect(status().isUnauthorized());
-    }
-
     // ========== Full Authentication Flow Test ==========
 
     @Test
@@ -410,7 +366,7 @@ class AuthControllerTest {
         Cookie refreshToken = loginResult.getResponse().getCookie("refreshToken");
 
         // 3. Get user info
-        mockMvc.perform(get("/api/auth/me")
+        mockMvc.perform(get("/api/users/me")
                         .cookie(accessToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.username").value("flowuser"));

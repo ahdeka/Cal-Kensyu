@@ -1,7 +1,6 @@
 package com.back.domain.auth.service;
 
 import com.back.domain.auth.dto.request.SignupRequest;
-import com.back.domain.auth.dto.response.UserInfoResponse;
 import com.back.domain.user.entity.Role;
 import com.back.domain.user.entity.User;
 import com.back.domain.user.repository.UserRepository;
@@ -22,7 +21,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -382,48 +382,5 @@ class AuthServiceTest {
                 .hasMessageContaining("Email already exists");
 
         verify(userRepository, never()).save(any());
-    }
-
-    // ========== Get User Info Tests ==========
-
-    @Test
-    @DisplayName("Get user info success")
-    void getUserInfo_Success() {
-        // given
-        String username = "testuser";
-        User mockUser = User.builder()
-                .username(username)
-                .password("password")
-                .email("test@test.com")
-                .nickname("testnick")
-                .role(Role.USER)
-                .build();
-        ReflectionTestUtils.setField(mockUser, "id", 1L);
-
-        when(userRepository.findByUsername(username)).thenReturn(Optional.of(mockUser));
-
-        // when
-        UserInfoResponse result = authService.getUserInfo(username);
-
-        // then
-        assertThat(result).isNotNull();
-        assertThat(result.id()).isEqualTo(1L);
-        assertThat(result.username()).isEqualTo(username);
-        assertThat(result.email()).isEqualTo("test@test.com");
-        assertThat(result.nickname()).isEqualTo("testnick");
-        assertThat(result.role()).isEqualTo("USER");
-    }
-
-    @Test
-    @DisplayName("Get user info failure - User not found")
-    void getUserInfo_UserNotFound_ThrowsException() {
-        // given
-        String username = "nonexistent";
-        when(userRepository.findByUsername(username)).thenReturn(Optional.empty());
-
-        // when & then
-        assertThatThrownBy(() -> authService.getUserInfo(username))
-                .isInstanceOf(ServiceException.class)
-                .hasMessageContaining("User not found");
     }
 }

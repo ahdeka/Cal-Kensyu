@@ -2,7 +2,6 @@ package com.back.domain.auth.controller;
 
 import com.back.domain.auth.dto.request.LoginRequest;
 import com.back.domain.auth.dto.request.SignupRequest;
-import com.back.domain.auth.dto.response.UserInfoResponse;
 import com.back.domain.auth.service.AuthService;
 import com.back.global.rsData.RsData;
 import com.back.global.security.auth.CustomUserDetails;
@@ -77,15 +76,6 @@ public class AuthController {
         return ResponseEntity.ok(
                 RsData.of("201", "Registration completed successfully")
         );
-    }
-
-    @GetMapping("/me")
-    public ResponseEntity<RsData<UserInfoResponse>> getCurrentUser(
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-
-        UserInfoResponse userInfo = authService.getUserInfo(userDetails.getUsername());
-
-        return ResponseEntity.ok(RsData.of("200", "User info retrieved successfully", userInfo));
     }
 
     // ===== Private Helper Methods =====

@@ -1,7 +1,6 @@
 package com.back.domain.auth.service;
 
 import com.back.domain.auth.dto.request.SignupRequest;
-import com.back.domain.auth.dto.response.UserInfoResponse;
 import com.back.domain.user.entity.Role;
 import com.back.domain.user.entity.User;
 import com.back.domain.user.repository.UserRepository;
@@ -49,7 +48,7 @@ public class AuthService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ServiceException("404", "User not found"));
 
-        user.updateRefreshToken(null);
+        user.destroyRefreshToken();
     }
 
     @Transactional
@@ -75,20 +74,6 @@ public class AuthService {
                 .build();
 
         userRepository.save(user);
-    }
-
-    @Transactional(readOnly = true)
-    public UserInfoResponse getUserInfo(String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ServiceException("404", "User not found"));
-
-        return UserInfoResponse.builder()
-                .id(user.getId())
-                .username(user.getUsername())
-                .email(user.getEmail())
-                .nickname(user.getNickname())
-                .role(user.getRole().name())
-                .build();
     }
 
     @Transactional

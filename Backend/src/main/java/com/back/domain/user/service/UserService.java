@@ -1,10 +1,14 @@
 package com.back.domain.user.service;
 
+import com.back.domain.auth.dto.response.UserInfoResponse;
+import com.back.domain.user.dto.request.ChangePasswordRequest;
+import com.back.domain.user.dto.request.UpdateProfileRequest;
 import com.back.domain.user.entity.User;
 import com.back.domain.user.repository.UserRepository;
 import com.back.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,6 +19,63 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+
+    public UserInfoResponse getUserInfo(String username) {
+        User user = getUserByUsername(username);
+
+        return UserInfoResponse.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .nickname(user.getNickname())
+                .role(user.getRole().name())
+                .build();
+    }
+
+    @Transactional
+    public UserInfoResponse updateProfile(String username, UpdateProfileRequest request) {
+        User user = getUserByUsername(username);
+
+        validateNicknameNotDuplicate(user, request.nickname());
+
+        validateEmailNotDuplicate(user, request.email());
+
+        user.updateProfile(request.nickname(), request.email());
+
+        return UserInfoResponse.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .nickname(user.getNickname())
+                .role(user.getRole().name())
+                .build();
+    }
+
+    @Transactional
+    public void changePassword(String username, ChangePasswordRequest request) {
+        User user = getUserByUsername(username);
+
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
+            throw new ServiceException("400", "Current password is incorrect");
+        }
+
+        if (!request.isPasswordMatching()) {
+            throw new ServiceException("400", "New passwords do not match");
+        }
+
+        user.updatePassword(passwordEncoder.encode(request.newPassword()));
+    }
+
+    @Transactional
+    public void deleteAccount(String username) {
+        User user = getUserByUsername(username);
+
+        user.delete();
+
+        log.info("User account soft deleted - username: {}, deleteDate: {}",
+                username, user.getDeleteDate());
+    }
 
     public User getUserByUsername(String username) {
         return userRepository.findByUsername(username)
@@ -44,5 +105,25 @@ public class UserService {
 
     public boolean existsByEmail(String email) {
         return userRepository.existsByEmail(email);
+    }
+
+    private void validateNicknameNotDuplicate(User currentUser, String newNickname) {
+        if (currentUser.getNickname().equals(newNickname)) {
+            return;
+        }
+
+        if (existsByNickname(newNickname)) {
+            throw new ServiceException("400", "Nickname already exists");
+        }
+    }
+
+    private void validateEmailNotDuplicate(User currentUser, String newEmail) {
+        if (currentUser.getEmail().equals(newEmail)) {
+            return;
+        }
+
+        if (existsByEmail(newEmail)) {
+            throw new ServiceException("400", "Email already exists");
+        }
     }
 }

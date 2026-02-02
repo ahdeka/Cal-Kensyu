@@ -5,6 +5,7 @@ import com.back.domain.auth.dto.response.UserInfoResponse;
 import com.back.domain.user.entity.Role;
 import com.back.domain.user.entity.User;
 import com.back.domain.user.repository.UserRepository;
+import com.back.domain.user.service.UserService;
 import com.back.global.exception.ServiceException;
 import com.back.global.security.jwt.JwtTokenProvider;
 import org.junit.jupiter.api.AfterEach;
@@ -33,6 +34,9 @@ class AuthServiceIntegrationTest {
 
     @Autowired
     private AuthService authService;
+
+    @Autowired
+    private UserService userService;
 
     @Autowired
     private UserRepository userRepository;
@@ -283,35 +287,6 @@ class AuthServiceIntegrationTest {
                 .hasMessageContaining("Invalid Refresh Token");
     }
 
-    // ========== Get User Info Tests ==========
-
-    @Test
-    @DisplayName("GetUserInfo - Returns correct user information from database")
-    void getUserInfo_ReturnsCorrectData() {
-        // given
-        User user = createTestUser("testuser", "password");
-
-        // when
-        UserInfoResponse userInfo = authService.getUserInfo("testuser");
-
-        // then
-        assertThat(userInfo).isNotNull();
-        assertThat(userInfo.id()).isEqualTo(user.getId());
-        assertThat(userInfo.username()).isEqualTo("testuser");
-        assertThat(userInfo.email()).isEqualTo("testuser@test.com");
-        assertThat(userInfo.nickname()).isEqualTo("testusernick");
-        assertThat(userInfo.role()).isEqualTo("USER");
-    }
-
-    @Test
-    @DisplayName("GetUserInfo - Throws exception for non-existent user")
-    void getUserInfo_UserNotFound_ThrowsException() {
-        // when & then
-        assertThatThrownBy(() -> authService.getUserInfo("nonexistent"))
-                .isInstanceOf(ServiceException.class)
-                .hasMessageContaining("User not found");
-    }
-
     // ========== Full Flow Test ==========
 
     @Test
@@ -338,7 +313,7 @@ class AuthServiceIntegrationTest {
         assertThat(userWithToken.getRefreshToken()).isNotNull();
 
         // 3. Get User Info
-        UserInfoResponse userInfo = authService.getUserInfo("flowuser");
+        UserInfoResponse userInfo = userService.getUserInfo("flowuser");
         assertThat(userInfo.username()).isEqualTo("flowuser");
 
         // 4. Refresh Token
