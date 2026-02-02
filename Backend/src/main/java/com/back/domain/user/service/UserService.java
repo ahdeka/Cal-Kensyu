@@ -24,13 +24,7 @@ public class UserService {
     public UserInfoResponse getUserInfo(String username) {
         User user = getUserByUsername(username);
 
-        return UserInfoResponse.builder()
-                .id(user.getId())
-                .username(user.getUsername())
-                .email(user.getEmail())
-                .nickname(user.getNickname())
-                .role(user.getRole().name())
-                .build();
+        return UserInfoResponse.from(user);
     }
 
     @Transactional
@@ -43,13 +37,7 @@ public class UserService {
 
         user.updateProfile(request.nickname(), request.email());
 
-        return UserInfoResponse.builder()
-                .id(user.getId())
-                .username(user.getUsername())
-                .email(user.getEmail())
-                .nickname(user.getNickname())
-                .role(user.getRole().name())
-                .build();
+        return UserInfoResponse.from(user);
     }
 
     @Transactional

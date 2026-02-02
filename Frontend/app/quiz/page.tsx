@@ -80,7 +80,7 @@ export default function QuizPage() {
 
   const checkLoginStatus = async () => {
     try {
-      const response = await fetch('http://localhost:8080/api/auth/me', {
+      const response = await fetch('http://localhost:8080/api/users/me', {
         credentials: 'include',
       });
 

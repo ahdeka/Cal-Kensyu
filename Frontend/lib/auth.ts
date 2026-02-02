@@ -30,7 +30,7 @@ export const authService = {
   // Get current user info
   async getCurrentUser(): Promise<ApiResponse> {
     try {
-      const response = await api.get<ApiResponse>('/api/auth/me');
+      const response = await api.get<ApiResponse>('/api/users/me');
       return response.data;
     } catch (error: any) {
       return {

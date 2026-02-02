@@ -30,7 +30,7 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    if (originalRequest.url?.includes('/api/auth/me')) {
+    if (originalRequest.url?.includes('/api/users/me')) {
       if (error.response?.status === 401 || error.response?.status === 403) {
         const silentError = new Error('Unauthorized');
         (silentError as any).response = error.response;
