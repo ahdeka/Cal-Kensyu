@@ -24,6 +24,6 @@ spring:
 
 # JWT Setting
 jwt:
-  secret: your-secret-key-must-be-at-least-256-bits-long-for-HS256-algorithm-security
+  secret: OLMdUwjynKR+9O7fFiT8tFM7l3HAAbNBcCEHgIX97DEigcpcSbr/kqTnUqrTyUZoP25LW6tbqcOmJQBisoRekg==
   access-token-expiration: 30m     # 30 minutes
   refresh-token-expiration: 7d  # 7 days
