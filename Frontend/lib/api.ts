@@ -1,8 +1,12 @@
 import axios from 'axios';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+console.log('🔍 [API CONFIG] API_URL:', API_URL);
+console.log('🔍 [API CONFIG] NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL)
+
 // API client configuration
 export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080',
+  baseURL: API_URL,
   withCredentials: true, // Include cookies
   headers: {
     'Content-Type': 'application/json',
