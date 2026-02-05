@@ -32,7 +32,7 @@ export default function DiaryWritePage() {
 
   const checkLoginStatus = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/me` {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/me`, {
         credentials: 'include',
       });
       
