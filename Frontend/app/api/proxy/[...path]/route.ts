@@ -58,7 +58,7 @@ async function handleProxy(request: NextRequest, pathArray: string[]) {
     const headers: HeadersInit = {};
     
     // Forward relevant headers
-    const forwardHeaders = ['content-type', 'authorization', 'cookie'];
+    const forwardHeaders = ['content-type', 'authorization', 'cookie', 'accept'];
     forwardHeaders.forEach(header => {
       const value = request.headers.get(header);
       if (value) {
@@ -76,7 +76,6 @@ async function handleProxy(request: NextRequest, pathArray: string[]) {
       method: request.method,
       headers,
       body,
-      credentials: 'include',
     });
     
     const contentType = response.headers.get('content-type');
@@ -88,19 +87,37 @@ async function handleProxy(request: NextRequest, pathArray: string[]) {
       data = await response.text();
     }
     
-    // Forward response headers
-    const responseHeaders = new Headers();
+    // Create response
+    const nextResponse = NextResponse.json(data, {
+      status: response.status,
+    });
+    
+    // Forward Set-Cookie headers
+    const setCookieHeaders = response.headers.getSetCookie();
+    setCookieHeaders.forEach(cookie => {
+      // Parse cookie to modify attributes
+      const cookieParts = cookie.split(';').map(part => part.trim());
+      const cookieValue = cookieParts[0];
+      
+      // Remove Secure and SameSite=None for development
+      const modifiedCookie = cookieParts
+        .filter(part => 
+          !part.toLowerCase().startsWith('secure') &&
+          !part.toLowerCase().startsWith('samesite=none')
+        )
+        .join('; ');
+      
+      nextResponse.headers.append('Set-Cookie', modifiedCookie);
+    });
+    
+    // Forward other headers
     response.headers.forEach((value, key) => {
-      // Skip some headers that shouldn't be forwarded
-      if (!['content-encoding', 'transfer-encoding', 'connection'].includes(key.toLowerCase())) {
-        responseHeaders.set(key, value);
+      if (!['content-encoding', 'transfer-encoding', 'connection', 'set-cookie'].includes(key.toLowerCase())) {
+        nextResponse.headers.set(key, value);
       }
     });
     
-    return NextResponse.json(data, {
-      status: response.status,
-      headers: responseHeaders,
-    });
+    return nextResponse;
   } catch (error) {
     console.error('Proxy error:', error);
     return NextResponse.json(
